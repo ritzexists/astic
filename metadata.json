@@ -1,0 +1,5 @@
+{
+  "name": "astic",
+  "description": "A WebXR capable 3D model viewer using Babylon.js and Three.js for VRML conversion",
+  "requestFramePermissions": []
+}
