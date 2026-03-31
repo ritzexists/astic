@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, SceneLoader, MeshBuilder, Color4, WebXRSessionManager, WebXRState, StandardMaterial, Texture, Color3, Mesh } from '@babylonjs/core';
+import { Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, PointLight, SceneLoader, MeshBuilder, Color4, WebXRSessionManager, WebXRState, StandardMaterial, Texture, Color3, Mesh } from '@babylonjs/core';
 import '@babylonjs/loaders';
 import { AdvancedDynamicTexture, Button, TextBlock } from '@babylonjs/gui';
 import { Upload, Box, Info, Glasses } from 'lucide-react';
@@ -29,6 +29,7 @@ export default function App() {
   const themeElementsRef = useRef<any[]>([]);
   const longPressTimer = useRef<any>(null);
   const isLongPress = useRef(false);
+  const userInteractedRef = useRef(false);
 
   useEffect(() => {
     if (!scene) return;
@@ -66,76 +67,209 @@ export default function App() {
     const ground = currentScene.getMeshByName("ground");
     if (!ground) return;
 
+    const mainLight = currentScene.getLightByName("light");
+
     switch (currentTheme) {
-      case 'cyberpunk':
-        currentScene.clearColor = new Color4(0.02, 0.01, 0.05, 1);
+      case 'cyberpunk': {
+        if (mainLight) mainLight.intensity = 0;
+        currentScene.clearColor = new Color4(0.01, 0.005, 0.02, 1);
         currentScene.fogMode = Scene.FOGMODE_EXP;
-        currentScene.fogDensity = 0.02;
-        currentScene.fogColor = new Color3(0.1, 0, 0.2);
+        currentScene.fogDensity = 0.01;
+        currentScene.fogColor = new Color3(0.02, 0, 0.05);
         
         const cpMat = new StandardMaterial("cpMat", currentScene);
-        cpMat.diffuseColor = new Color3(0, 0, 0);
-        cpMat.emissiveColor = new Color3(0, 0.8, 1);
-        const cpTex = new Texture("https://www.babylonjs-playground.com/textures/grid.jpg", currentScene);
+        const cpTex = new Texture("https://picsum.photos/seed/citystreet/512/512", currentScene);
         cpTex.uScale = 20;
         cpTex.vScale = 20;
-        cpMat.emissiveTexture = cpTex;
+        cpMat.diffuseTexture = cpTex;
+        cpMat.specularColor = new Color3(0.1, 0.1, 0.1);
         ground.material = cpMat;
-        break;
 
-      case 'vaporwave':
-        currentScene.clearColor = new Color4(1, 0.2, 0.7, 1);
+        // Night Sky Backdrop
+        const sky = MeshBuilder.CreateSphere("sky", { diameter: 500, segments: 32 }, currentScene);
+        const skyMat = new StandardMaterial("skyMat", currentScene);
+        skyMat.backFaceCulling = false;
+        skyMat.diffuseColor = new Color3(0, 0, 0);
+        skyMat.emissiveColor = new Color3(0.05, 0.02, 0.1);
+        const skyTex = new Texture("https://picsum.photos/seed/nightstars/512/512", currentScene);
+        skyTex.uScale = 5;
+        skyTex.vScale = 5;
+        skyMat.emissiveTexture = skyTex;
+        sky.material = skyMat;
+        themeElementsRef.current.push(sky);
+
+        // Large Full Moon
+        const moonPos = new Vector3(-80, 100, 150);
+        const moon = MeshBuilder.CreateSphere("moon", { diameter: 40, segments: 32 }, currentScene);
+        moon.position = moonPos;
+        moon.rotation.y = Math.PI; // Rotate to face the center
+        const moonMat = new StandardMaterial("moonMat", currentScene);
+        moonMat.emissiveColor = new Color3(0.9, 0.9, 1);
+        const moonTex = new Texture("https://www.babylonjs-playground.com/textures/moon.jpg", currentScene);
+        moonMat.emissiveTexture = moonTex;
+        moonMat.diffuseTexture = moonTex;
+        moon.material = moonMat;
+        themeElementsRef.current.push(moon);
+
+        // Moon Light (Blue)
+        const moonLight = new PointLight("moonLight", moonPos, currentScene);
+        moonLight.diffuse = new Color3(0, 0.5, 1);
+        moonLight.intensity = 2.0;
+        moonLight.range = 300;
+        themeElementsRef.current.push(moonLight);
+
+        // Default Lighting for Theme (Pink)
+        const pinkLight = new HemisphericLight("pinkLight", new Vector3(1, 1, 0), currentScene);
+        pinkLight.diffuse = new Color3(1, 0, 0.5); // Pink/Magenta
+        pinkLight.intensity = 1.0;
+        themeElementsRef.current.push(pinkLight);
+
+        // Distant Skyscrapers
+        for (let i = 0; i < 50; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 40 + Math.random() * 60;
+          const w = 3 + Math.random() * 6;
+          const h = 20 + Math.random() * 50;
+          const d = 3 + Math.random() * 6;
+          
+          const building = MeshBuilder.CreateBox("building", { width: w, height: h, depth: d }, currentScene);
+          building.position = new Vector3(Math.cos(angle) * dist, h / 2 + (groundPlacement === 'underneath' ? modelMinY : 0) - 2, Math.sin(angle) * dist);
+          
+          const bMat = new StandardMaterial("bMat", currentScene);
+          bMat.diffuseColor = new Color3(0.02, 0.02, 0.05);
+          const bTex = new Texture("https://www.babylonjs-playground.com/textures/grid.jpg", currentScene);
+          bTex.uScale = 2;
+          bTex.vScale = h / 5;
+          bMat.emissiveTexture = bTex;
+          bMat.emissiveColor = Math.random() > 0.5 ? new Color3(1, 0, 0.5) : new Color3(0, 0.5, 1);
+          building.material = bMat;
+          themeElementsRef.current.push(building);
+        }
+        break;
+      }
+
+      case 'vaporwave': {
+        if (mainLight) mainLight.intensity = 0;
+        currentScene.clearColor = new Color4(1, 0.4, 0.6, 1); // Pinkish horizon
         currentScene.fogMode = Scene.FOGMODE_EXP;
-        currentScene.fogDensity = 0.03;
-        currentScene.fogColor = new Color3(0.5, 0, 0.5);
+        currentScene.fogDensity = 0.01;
+        currentScene.fogColor = new Color3(1, 0.4, 0.6);
 
         const vwMat = new StandardMaterial("vwMat", currentScene);
-        vwMat.diffuseColor = new Color3(0.2, 0, 0.4);
-        vwMat.emissiveColor = new Color3(1, 0, 1);
-        const vwTex = new Texture("https://www.babylonjs-playground.com/textures/grid.jpg", currentScene);
-        vwTex.uScale = 30;
-        vwTex.vScale = 30;
-        vwMat.emissiveTexture = vwTex;
+        const grassTex = new Texture("https://picsum.photos/seed/green-grass/512/512", currentScene);
+        grassTex.uScale = 20;
+        grassTex.vScale = 20;
+        vwMat.diffuseTexture = grassTex;
+        vwMat.specularColor = new Color3(0, 0, 0);
         ground.material = vwMat;
 
-        // Add some "palm trees" (planes)
-        for (let i = 0; i < 10; i++) {
-          const palm = MeshBuilder.CreatePlane("palm", { size: 5 }, currentScene);
-          palm.position = new Vector3(Math.random() * 40 - 20, 2.5, Math.random() * 40 + 10);
+        // Orange/Pink Gradient Sky (Orange at top, Pink at horizon)
+        const vwSky = MeshBuilder.CreateSphere("vwSky", { diameter: 500, segments: 32 }, currentScene);
+        const vwSkyMat = new StandardMaterial("vwSkyMat", currentScene);
+        vwSkyMat.backFaceCulling = false;
+        // We simulate the gradient using a texture and emissive color
+        const skyGradTex = new Texture("https://picsum.photos/seed/orange-pink-sky/512/512", currentScene);
+        vwSkyMat.emissiveTexture = skyGradTex;
+        vwSkyMat.emissiveColor = new Color3(1, 0.6, 0.8); 
+        vwSky.material = vwSkyMat;
+        themeElementsRef.current.push(vwSky);
+
+        // Massive Red-Orange Half-Set Sun
+        const sunsetPos = new Vector3(0, groundPlacement === 'underneath' ? modelMinY : 0, 200);
+        const sunset = MeshBuilder.CreatePlane("sunset", { size: 120 }, currentScene);
+        sunset.position = sunsetPos; // Half-set at ground level
+        sunset.billboardMode = Mesh.BILLBOARDMODE_ALL;
+        const sunsetMat = new StandardMaterial("sunsetMat", currentScene);
+        sunsetMat.emissiveColor = new Color3(1, 0.2, 0); // Red-Orange
+        sunsetMat.diffuseColor = new Color3(1, 0.2, 0);
+        const sunsetTex = new Texture("https://picsum.photos/seed/red-orange-sun/512/512", currentScene);
+        sunsetMat.emissiveTexture = sunsetTex;
+        sunsetMat.opacityTexture = sunsetTex;
+        sunset.material = sunsetMat;
+        themeElementsRef.current.push(sunset);
+
+        // Sun Light (Orange)
+        const sunLight = new PointLight("sunLight", sunsetPos, currentScene);
+        sunLight.diffuse = new Color3(1, 0.5, 0);
+        sunLight.intensity = 2.0;
+        sunLight.range = 400;
+        themeElementsRef.current.push(sunLight);
+
+        // Ambient Fill for Vaporwave
+        const ambientVw = new HemisphericLight("ambientVw", new Vector3(0, 1, 0), currentScene);
+        ambientVw.diffuse = new Color3(0.5, 0.2, 0.5);
+        ambientVw.intensity = 0.5;
+        themeElementsRef.current.push(ambientVw);
+
+        // Distant Palm Trees
+        for (let i = 0; i < 30; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 35 + Math.random() * 40;
+          const palm = MeshBuilder.CreatePlane("palm", { size: 12 }, currentScene);
+          palm.position = new Vector3(Math.cos(angle) * dist, 6 + (groundPlacement === 'underneath' ? modelMinY : 0) - 1, Math.sin(angle) * dist);
           palm.billboardMode = Mesh.BILLBOARDMODE_ALL;
           const pMat = new StandardMaterial("pMat", currentScene);
-          const pTex = new Texture("https://picsum.photos/seed/palm/200/400", currentScene);
+          const pTex = new Texture("https://picsum.photos/seed/palm-tree-silhouette/200/400", currentScene);
           pMat.diffuseTexture = pTex;
           pTex.hasAlpha = true;
           palm.material = pMat;
           themeElementsRef.current.push(palm);
         }
         break;
+      }
 
-      case 'geocities':
-        currentScene.clearColor = new Color4(0, 0, 0.2, 1);
+      case 'geocities': {
+        if (mainLight) mainLight.intensity = 0;
+        currentScene.clearColor = new Color4(0, 0, 0.1, 1);
         currentScene.fogMode = Scene.FOGMODE_NONE;
         
+        // Ground Texture
         const gcMat = new StandardMaterial("gcMat", currentScene);
-        const gcTex = new Texture("https://picsum.photos/seed/stars/256/256", currentScene);
-        gcTex.uScale = 50;
-        gcTex.vScale = 50;
+        const gcTex = new Texture("https://picsum.photos/seed/90s-tiled-bg/256/256", currentScene);
+        gcTex.uScale = 40;
+        gcTex.vScale = 40;
         gcMat.diffuseTexture = gcTex;
         ground.material = gcMat;
 
-        // Floating "Under Construction" signs
-        for (let i = 0; i < 5; i++) {
-          const sign = MeshBuilder.CreatePlane("sign", { size: 2 }, currentScene);
-          sign.position = new Vector3(Math.random() * 10 - 5, 2 + Math.random() * 2, Math.random() * 10 - 5);
+        // Sky Texture
+        const gcSky = MeshBuilder.CreateSphere("gcSky", { diameter: 500, segments: 32 }, currentScene);
+        const gcSkyMat = new StandardMaterial("gcSkyMat", currentScene);
+        gcSkyMat.backFaceCulling = false;
+        const skyTex = new Texture("https://picsum.photos/seed/vintage-space/512/512", currentScene);
+        skyTex.uScale = 10;
+        skyTex.vScale = 10;
+        gcSkyMat.emissiveTexture = skyTex;
+        gcSkyMat.diffuseColor = new Color3(0, 0, 0);
+        gcSky.material = gcSkyMat;
+        themeElementsRef.current.push(gcSky);
+
+        // Default Lighting for Theme (White)
+        const gcLight = new HemisphericLight("gcLight", new Vector3(0, 1, 0), currentScene);
+        gcLight.intensity = 0.8;
+        themeElementsRef.current.push(gcLight);
+
+        // Floating "Under Construction" signs and random 90s stuff (further away)
+        const items = ["construction", "skull", "fire", "cool", "web", "new", "hot"];
+        for (let i = 0; i < 25; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 25 + Math.random() * 25;
+          const sign = MeshBuilder.CreatePlane("sign", { size: 3 + Math.random() * 2 }, currentScene);
+          sign.position = new Vector3(
+            Math.cos(angle) * dist, 
+            1 + Math.random() * 8 + (groundPlacement === 'underneath' ? modelMinY : 0), 
+            Math.sin(angle) * dist
+          );
           sign.billboardMode = Mesh.BILLBOARDMODE_ALL;
           const sMat = new StandardMaterial("sMat", currentScene);
-          sMat.diffuseTexture = new Texture("https://picsum.photos/seed/construction/200/100", currentScene);
+          sMat.diffuseTexture = new Texture(`https://picsum.photos/seed/${items[i % items.length]}/200/200`, currentScene);
           sign.material = sMat;
           themeElementsRef.current.push(sign);
         }
         break;
+      }
 
       default:
+        if (mainLight) mainLight.intensity = 0.7;
         currentScene.clearColor = new Color4(0.1, 0.1, 0.1, 1);
         currentScene.fogMode = Scene.FOGMODE_NONE;
         const defMat = new StandardMaterial("defMat", currentScene);
@@ -185,7 +319,9 @@ export default function App() {
           
           const excludedWeb3D = [
             'Example04', 'Example05', 'Example07', 'Example14', 'Example15', 'Example16', 'Example19',
-            '6', '10', '11', '12', '13_3', 'RefractiveMaterial', 'Rotor', 'exampleD_5'
+            '6', '10', '11', '12', '13_3', 
+            'Example6', 'Example10', 'Example11', 'Example12', 'Example13_3',
+            'RefractiveMaterial', 'Rotor', 'exampleD_5'
           ];
           
           Array.from(links).forEach(link => {
@@ -232,7 +368,7 @@ export default function App() {
                 }
               }
 
-              const excludedLMU = ['boxandsphere', 'axesthree'];
+              const excludedLMU = ['boxandsphere', 'axesthree', 'axes3'];
               if (excludedLMU.some(ex => name.toLowerCase().includes(ex.toLowerCase()))) return;
 
               newPresets.push({
@@ -263,6 +399,13 @@ export default function App() {
     camera.attachControl(canvasRef.current, true);
     camera.wheelPrecision = 50;
     camera.minZ = 0.1;
+
+    // Detect user interaction to stop auto-orbit
+    newScene.onPointerObservable.add((pointerInfo) => {
+      if (pointerInfo.type === 0x01) { // PointerDown
+        userInteractedRef.current = true;
+      }
+    });
 
     const light = new HemisphericLight("light", new Vector3(0, 1, 0), newScene);
     light.intensity = 0.7;
@@ -351,6 +494,12 @@ export default function App() {
     initXR();
 
     newEngine.runRenderLoop(() => {
+      if (newScene.activeCamera && !userInteractedRef.current) {
+        const arcCamera = newScene.activeCamera as ArcRotateCamera;
+        if (arcCamera.alpha !== undefined) {
+          arcCamera.alpha += 0.005;
+        }
+      }
       newScene.render();
     });
 
@@ -445,6 +594,7 @@ export default function App() {
   };
 
   const loadBabylonModel = (fileToLoad: File, ext: string, isUpload: boolean = false) => {
+    userInteractedRef.current = false;
     // Capture existing meshes to dispose them ONLY after successful load
     const oldMeshes = scene!.meshes.filter(mesh => 
       mesh.name !== "camera" && mesh.name !== "light" && mesh.name !== "ground" && mesh.name !== "xrUploadUI"
@@ -501,6 +651,7 @@ export default function App() {
   const loadModel = (file: File) => {
     if (!scene) return;
     
+    userInteractedRef.current = false;
     setIsLoading(true);
     setError(null);
 
