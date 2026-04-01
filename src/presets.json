@@ -1,0 +1,418 @@
+[
+  {
+    "name": "Web3D: ChopperBody.wrl",
+    "url": "https://www.web3d.org/x3d/content/Basic/Vrml97Specification/ChopperBody.wrl"
+  },
+  {
+    "name": "Web3D: ChopperRotor.wrl",
+    "url": "https://www.web3d.org/x3d/content/Basic/Vrml97Specification/ChopperRotor.wrl"
+  },
+  {
+    "name": "Web3D: Example02.wrl",
+    "url": "https://www.web3d.org/x3d/content/Basic/Vrml97Specification/Example02.wrl"
+  },
+  {
+    "name": "Web3D: Example03.wrl",
+    "url": "https://www.web3d.org/x3d/content/Basic/Vrml97Specification/Example03.wrl"
+  },
+  {
+    "name": "Web3D: Example06.wrl",
+    "url": "https://www.web3d.org/x3d/content/Basic/Vrml97Specification/Example06.wrl"
+  },
+  {
+    "name": "Web3D: Example08.wrl",
+    "url": "https://www.web3d.org/x3d/content/Basic/Vrml97Specification/Example08.wrl"
+  },
+  {
+    "name": "Web3D: Example09.wrl",
+    "url": "https://www.web3d.org/x3d/content/Basic/Vrml97Specification/Example09.wrl"
+  },
+  {
+    "name": "Web3D: Example13_2.wrl",
+    "url": "https://www.web3d.org/x3d/content/Basic/Vrml97Specification/Example13_2.wrl"
+  },
+  {
+    "name": "Web3D: Example17.wrl",
+    "url": "https://www.web3d.org/x3d/content/Basic/Vrml97Specification/Example17.wrl"
+  },
+  {
+    "name": "Web3D: Example18.wrl",
+    "url": "https://www.web3d.org/x3d/content/Basic/Vrml97Specification/Example18.wrl"
+  },
+  {
+    "name": "LMU: yellowcone.wrl",
+    "content": "#VRML V2.0 utf8\n#-----------------------------------------------------------------------------\n# yellowcone.wrl\n#\n# A really simple VRML world consisting of a yellow cone lit from above.\n#-----------------------------------------------------------------------------\n\n# A directional light source, shining down from above.\n\nDirectionalLight {\n  direction 0 -1 0\n}\n\n# A yellow cone rotated about 57 degrees from vertical.\n\nTransform {\n  rotation 0 0 -1 1\n  children [\n    Shape {\n      appearance Appearance {\n        material Material {diffuseColor 1 1 0}\n      }\n      geometry Cone {\n        bottomRadius 2 \n        height 8.1\n      }\n    }\n  ]\n}\n"
+  },
+  {
+    "name": "LMU: axes1.wrl",
+    "content": "#VRML V2.0 utf8\n#-----------------------------------------------------------------------------\n# axes1.wrl\n#\n# Draws the X, Y and Z coordinate axes, each 10 meters long: X red, Y green\n# and Z blue, as cylinders with radius 0.1m.\n#\n# This is a very ugly document because each axis is constructed separately\n# and transforms are used to scale the cylinder.\n#-----------------------------------------------------------------------------\n\n# Red X-axis\n\nTransform {\n  scale 0.1 5 0.1\n  rotation 0 0 1 -1.57080\n  translation 5 0 0\n  children [\n    Shape {\n      appearance Appearance {material Material {diffuseColor 1 0 0}}\n      geometry Cylinder {}\n    }\n  ]\n}\n\n# Green X-axis\n\nTransform {\n  scale 0.1 5 0.1\n  translation 0 5 0\n  children [\n    Shape {\n      appearance Appearance {material Material {diffuseColor 0 1 0}}\n      geometry Cylinder {}\n    }\n  ]\n}\n\n# Blue Z-axis\n\nTransform {\n  scale 0.1 5 0.1\n  rotation 1 0 0 1.57080  \n  translation 0 0 5\n  children [\n    Shape {\n      appearance Appearance {material Material {diffuseColor 0 0 1}}\n      geometry Cylinder {}\n    }\n  ]\n}\n\n# Spere at origin\n\nShape {geometry Sphere{}}\n\n# Sphere at end of X-axis\n\nTransform {\n  translation 10 0 0\n  children [Shape {geometry Sphere{}}]\n}\n\n# Sphere at end of Y-axis\n\nTransform {\n  translation 0 10 0\n  children [Shape {geometry Sphere{}}]\n}\n\n# Sphere at end of Z-axis\n\nTransform {\n  translation 0 0 10\n  children [Shape {geometry Sphere{}}]\n}\n\n"
+  },
+  {
+    "name": "LMU: axes2.wrl",
+    "content": "#VRML V2.0 utf8\n# ----------------------------------------------------------------------------\n# axes2.wrl\n#\n# Draws the X, Y and Z coordinate axes, each 10 meters long: X red, Y green \n# and Z blue, as cylinders with radius 0.1m.\n#\n# Each axis is constructed separately in a rather brute force manner.  At\n# least the fields of the Cylinder node are used.\n# ----------------------------------------------------------------------------\n\n# Red X-axis\n\nTransform {\n  rotation 0 0 1 -1.57080\n  translation 5 0 0\n  children [\n    Shape {\n      appearance Appearance {material Material {diffuseColor 1 0 0}}\n      geometry Cylinder {radius 0.1 height 10 top FALSE bottom FALSE}\n    }\n  ]\n}\n\n# Green X-axis\n\nTransform {\n  translation 0 5 0\n  children [\n    Shape {\n      appearance Appearance {material Material {diffuseColor 0 1 0}}\n      geometry Cylinder {radius 0.1 height 10 top FALSE bottom FALSE}\n    }\n  ]\n}\n\n# Blue Z-axis\n\nTransform {\n  rotation 1 0 0 1.57080  \n  translation 0 0 5\n  children [\n    Shape {\n      appearance Appearance {material Material {diffuseColor 0 0 1}}\n      geometry Cylinder {radius 0.1 height 10 top FALSE bottom FALSE}\n    }\n  ]\n}\n# Spere at origin\n\nShape {geometry Sphere{}}\n\n# Sphere at end of X-axis\n\nTransform {\n  translation 10 0 0\n  children [Shape {geometry Sphere{}}]\n}\n\n# Sphere at end of Y-axis\n\nTransform {\n  translation 0 10 0\n  children [Shape {geometry Sphere{}}]\n}\n\n# Sphere at end of Z-axis\n\nTransform {\n  translation 0 0 10\n  children [Shape {geometry Sphere{}}]\n}\n\n"
+  },
+  {
+    "name": "LMU: house.wrl",
+    "content": "#VRML V2.0 utf8\n#-----------------------------------------------------------------------------\n# house.wrl\n#\n# A very basic \"house\".\n#-----------------------------------------------------------------------------\n\nShape {\n  appearance Appearance {\n    material Material {diffuseColor 1 1 0}\n  }\n  geometry IndexedFaceSet {\n    coord Coordinate {\n      point [                           # define the ten points\n        -1 0  2,\n        -1 0 -2,\n         1 0 -2,\n         1 0  2,\n        -1 1  2,\n        -1 1 -2,\n         1 1 -2,\n         1 1  2,\n         0 2  2,\n         0 2 -2\n      ]\n    }\n    coordIndex [                        # define the seven faces\n      0, 1, 2, 3, -1,\n      0, 3, 7, 8, 4, -1,\n      1, 5, 9, 6, 2, -1,\n      2, 6, 7, 3, -1,\n      0, 4, 5, 1, -1,\n      7, 6, 9, 8, -1,\n      4, 8, 9, 5, -1\n    ]\n  }\n}\n\n"
+  },
+  {
+    "name": "LMU: roller.wrl",
+    "content": "#VRML V2.0 utf8\n\nTransform {\n  children Shape {\n    appearance DEF SolidYellow Appearance {\n      material Material {\n        diffuseColor 1 1 0\n      }\n    }\n    geometry Cone { }\n  }\n}\n\nGroup {\n  children [\n    DEF TheTouchSensor TouchSensor {}\n    DEF LittleSphere Transform {\n      translation 0 1.2 0\n      children Shape {\n        appearance USE SolidYellow\n        geometry Sphere {radius 0.2}\n      }\n    }\n  ]\n}\n\nDEF TheTimeSensor TimeSensor {cycleInterval 10}\n\nDEF TheInterpolator PositionInterpolator {\n  key [ 0, 1 ]\n  keyValue [ 0 1.2 0, 1.2 -1 0 ]\n}\n\nROUTE TheTouchSensor.touchTime TO TheTimeSensor.startTime\nROUTE TheTimeSensor.fraction_changed TO TheInterpolator.set_fraction\nROUTE TheInterpolator.value_changed TO LittleSphere.set_translation\n\n"
+  },
+  {
+    "name": "LMU: elevator.wrl",
+    "content": "#VRML V2.0 utf8\n\n# Stolen from the VRML 97 Final Specification\n\nTransform {\n  translation 0 0 -3.5\n  children Shape {\n    appearance Appearance {\n      material Material {\n        diffuseColor 0 1 0\n      }\n    }\n    geometry Cone { }\n  }\n}\n\nTransform {\n  translation 0 4 -3.5\n  children Shape {\n    appearance Appearance {\n      material Material {\n        diffuseColor 1 0 0\n      }\n    }\n    geometry Cone { }\n  }\n}\n\nTransform {\n  translation 0 8 -3.5\n  children Shape {\n    appearance Appearance {\n      material Material {\n        diffuseColor 0 0 1\n      }\n    }\n    geometry Cone { }\n  }\n}\n\nGroup {\n  children [\n    DEF ETransform Transform {\n      children [\n        DEF EViewpoint Viewpoint { jump FALSE }\n        DEF EProximity ProximitySensor { size 2 5 5 }\n        Transform {\n          translation 0 -1 0\n          children Shape {\n            appearance Appearance {\n              material Material { }\n            }\n            geometry Box { size 2 0.2 5 }\n          }\n        }\n      ]\n    }\n  ]\n}\n\nDEF ElevatorPI PositionInterpolator {\n  key [ 0, 1 ]\n  keyValue [ 0 0 0, 0 8 0 ] # a floor is 4 meters high\n}\n\nDEF TS TimeSensor { cycleInterval 10 } # 10 second travel time\n\nROUTE EProximity.enterTime TO TS.startTime\nROUTE TS.isActive TO EViewpoint.set_bind\nROUTE TS.fraction_changed TO ElevatorPI.set_fraction\nROUTE ElevatorPI.value_changed TO ETransform.set_translation\n\n"
+  },
+  {
+    "name": "SIG-GRAPH: ambient.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/ambient.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: anchor.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/anchor.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: arch.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/arch.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: arches.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/arches.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: atorch3.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/atorch3.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: back.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/back.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: back2.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/back2.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: barplot.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/barplot.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: bartwist.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/bartwist.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: bounce.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/bounce.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: box.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/box.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: brickb.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/brickb.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: can.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/can.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: castle.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/castle.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: chair.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/chair.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: cmount.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/cmount.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: cmount2.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/cmount2.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: colors.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/colors.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: column.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/column.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: cone.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/cone.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: cookie.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/cookie.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: cyl.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/cyl.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: cylinder.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/cylinder.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: ddoor.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/ddoor.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: dfloor.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/dfloor.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: donut.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/donut.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: dwall.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/dwall.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: dwall2.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/dwall2.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: espiralm.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/espiralm.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: fence.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/fence.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: floor.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/floor.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: fog1.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/fog1.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: fog2.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/fog2.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: fog3.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/fog3.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: fog4.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/fog4.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: fog5.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/fog5.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: fogworld.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/fogworld.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: glowdoor.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/glowdoor.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: hand.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/hand.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: hcyl.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/hcyl.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: horn.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/horn.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: hud.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/hud.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: isoline.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/isoline.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: isosurf.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/isosurf.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: kbd.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/kbd.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: lamp.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/lamp.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: land.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/land.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: lightng.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/lightng.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: lnplot.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/lnplot.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: log.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/log.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: mount.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/mount.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: mount16.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/mount16.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: mount32.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/mount32.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: mount128.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/mount128.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: pedestal.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/pedestal.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: ptplot.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/ptplot.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: robobody.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/robobody.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: robohead.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/robohead.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: shiny.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/shiny.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: slabs.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/slabs.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: slide.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/slide.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: sndmark.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/sndmark.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: space.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/space.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: space2.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/space2.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: sphere.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/sphere.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: spheres.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/spheres.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: stairwy.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/stairwy.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: table.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/table.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: ter00.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/ter00.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: ter01.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/ter01.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: ter02.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/ter02.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: ter03.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/ter03.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: ter04.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/ter04.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: ter05.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/ter05.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: ter06.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/ter06.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: ter07.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/ter07.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: ter08.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/ter08.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: ter09.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/ter09.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: terrain1.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/terrain1.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: text.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/text.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: textfont.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/textfont.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: textjust.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/textjust.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: textsize.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/textsize.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: textvert.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/textvert.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: timetime.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/timetime.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: torch1.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/torch1.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: torch2.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/torch2.wrl"
+  },
+  {
+    "name": "SIG-GRAPH: torch3.wrl",
+    "url": "https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/torch3.wrl"
+  }
+]

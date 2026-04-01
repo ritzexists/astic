@@ -6,6 +6,7 @@ import { Upload, Box, Info, Glasses } from 'lucide-react';
 import * as THREE from 'three';
 import { VRMLLoader } from 'three/examples/jsm/loaders/VRMLLoader.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
+import presetsData from './presets.json';
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -21,7 +22,7 @@ export default function App() {
   const [isDefaultModel, setIsDefaultModel] = useState(true);
   const [presetModels, setPresetModels] = useState<{name: string, url?: string, content?: string}[]>([]);
   const instructionsRef = useRef<HTMLDivElement>(null);
-  const [theme, setTheme] = useState<'default' | 'cyberpunk' | 'vaporwave' | 'geocities'>('default');
+  const [theme, setTheme] = useState<'default' | 'cyberpunk' | 'vaporwave' | 'geocities' | 'void'>('void');
   const [groundPlacement, setGroundPlacement] = useState<'underneath' | 'middle'>('underneath');
   const [modelMinY, setModelMinY] = useState(0);
   const groundRef = useRef<any>(null);
@@ -69,7 +70,16 @@ export default function App() {
 
     const mainLight = currentScene.getLightByName("light");
 
+    ground.isVisible = currentTheme !== 'void';
+
     switch (currentTheme) {
+      case 'void': {
+        if (mainLight) mainLight.intensity = 0.7;
+        currentScene.clearColor = new Color4(0.05, 0.05, 0.05, 1);
+        currentScene.fogMode = Scene.FOGMODE_NONE;
+        break;
+      }
+
       case 'cyberpunk': {
         if (mainLight) mainLight.intensity = 0;
         currentScene.clearColor = new Color4(0.01, 0.005, 0.02, 1);
@@ -284,7 +294,7 @@ export default function App() {
       isLongPress.current = false;
       return;
     }
-    const themes: ('default' | 'cyberpunk' | 'vaporwave' | 'geocities')[] = ['default', 'cyberpunk', 'vaporwave', 'geocities'];
+    const themes: ('default' | 'cyberpunk' | 'vaporwave' | 'geocities' | 'void')[] = ['default', 'cyberpunk', 'vaporwave', 'geocities', 'void'];
     const nextIndex = (themes.indexOf(theme) + 1) % themes.length;
     const nextTheme = themes[nextIndex];
     setTheme(nextTheme);
@@ -292,100 +302,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    const fetchPresets = async () => {
-      try {
-        const newPresets: {name: string, url?: string, content?: string}[] = [];
-        
-        // 1. Fetch Web3D VRML97 Specification Models
-        const web3dUrl = 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent('https://www.web3d.org/x3d/content/Basic/Vrml97Specification/index.html');
-        const web3dRes = await fetch(web3dUrl);
-        if (web3dRes.ok) {
-          const web3dHtml = await web3dRes.text();
-          const links = new Set<string>();
-          
-          // Match Index.html links
-          const regex1 = /href="([^"]+)Index\.html"/g;
-          let match1;
-          while ((match1 = regex1.exec(web3dHtml)) !== null) {
-            links.add(match1[1] + '.wrl');
-          }
-          
-          // Match direct .wrl links
-          const regex2 = /href="([^"]+\.wrl)"/g;
-          let match2;
-          while ((match2 = regex2.exec(web3dHtml)) !== null) {
-            links.add(match2[1]);
-          }
-          
-          const excludedWeb3D = [
-            'Example04', 'Example05', 'Example07', 'Example14', 'Example15', 'Example16', 'Example19',
-            '6', '10', '11', '12', '13_3', 
-            'Example6', 'Example10', 'Example11', 'Example12', 'Example13_3',
-            'RefractiveMaterial', 'Rotor', 'exampleD_5'
-          ];
-          
-          Array.from(links).forEach(link => {
-            const fileName = link.split('/').pop() || link;
-            const nameOnly = fileName.replace('.wrl', '');
-            if (excludedWeb3D.includes(nameOnly)) return;
-            
-            newPresets.push({
-              name: `Web3D: ${fileName}`,
-              url: `https://www.web3d.org/x3d/content/Basic/Vrml97Specification/${link}`
-            });
-          });
-        }
-
-        // 2. Fetch LMU VRML Examples
-        const lmuUrl = 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent('https://cs.lmu.edu/~ray/notes/vrmlexamples/');
-        const lmuRes = await fetch(lmuUrl);
-        if (lmuRes.ok) {
-          const lmuHtml = await lmuRes.text();
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(lmuHtml, 'text/html');
-          const preElements = doc.querySelectorAll('pre code');
-          preElements.forEach(code => {
-            const text = code.textContent || '';
-            if (text.includes('#VRML V2.0 utf8')) {
-              let name = 'LMU Example';
-              
-              // Try to find the filename in the preceding .filename div
-              const pre = code.parentElement;
-              if (pre) {
-                const filenameDiv = pre.previousElementSibling;
-                if (filenameDiv && filenameDiv.classList.contains('filename')) {
-                  name = filenameDiv.textContent?.trim() || name;
-                } else {
-                  // Fallback to searching for headers if .filename is missing
-                  let prev = pre.previousElementSibling;
-                  while (prev) {
-                    if (prev.tagName.match(/^H[1-6]$/)) {
-                      name = prev.textContent?.trim() || name;
-                      break;
-                    }
-                    prev = prev.previousElementSibling;
-                  }
-                }
-              }
-
-              const excludedLMU = ['boxandsphere', 'axesthree', 'axes3'];
-              if (excludedLMU.some(ex => name.toLowerCase().includes(ex.toLowerCase()))) return;
-
-              newPresets.push({
-                name: `LMU: ${name}`,
-                content: text
-              });
-            }
-          });
-        }
-
-        setPresetModels(newPresets);
-      } catch (err) {
-        console.error("Failed to fetch presets:", err);
-      }
-    };
-
-    fetchPresets();
+    setPresetModels(presetsData);
   }, []);
 
   useEffect(() => {
@@ -457,7 +374,7 @@ export default function App() {
 
               const advancedTexture = AdvancedDynamicTexture.CreateForMesh(plane);
               
-              const button = Button.CreateSimpleButton("xrUploadBtn", "UPLOAD MODEL");
+              const button = Button.CreateSimpleButton("xrUploadBtn", "UPLOAD WORLD");
               button.width = "0.8";
               button.height = "0.3";
               button.color = "white";
@@ -776,21 +693,21 @@ export default function App() {
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >
-      <div className="absolute top-0 left-0 w-full p-6 z-10 flex justify-between items-start pointer-events-none">
+      <div className="absolute top-0 left-0 w-full p-4 md:p-6 z-10 flex justify-between items-start pointer-events-none">
         <button 
           onClick={cycleTheme}
           onPointerDown={handleLogoDown}
           onPointerUp={handleLogoUp}
           onPointerLeave={handleLogoUp}
-          className="flex items-center gap-3 bg-black/60 backdrop-blur-md px-4 py-3 rounded-xl border-2 border-dashed border-fuchsia-500 pointer-events-auto shadow-[0_0_15px_rgba(255,0,255,0.5)] hover:scale-105 transition-transform active:scale-95 group select-none"
+          className="flex items-center gap-2 md:gap-3 bg-black/60 backdrop-blur-md px-2 py-1.5 md:px-4 md:py-3 rounded-xl border-2 border-dashed border-fuchsia-500 pointer-events-auto shadow-[0_0_15px_rgba(255,0,255,0.5)] hover:scale-105 transition-transform active:scale-95 group select-none"
           title="Click to cycle theme, Long press to toggle ground placement"
         >
-          <div className="bg-fuchsia-500/20 p-2 rounded-lg group-hover:bg-fuchsia-500/40 transition-colors">
-            <Box className="w-6 h-6 text-fuchsia-400 animate-spin" style={{ animationDuration: '3s' }} />
+          <div className="bg-fuchsia-500/20 p-1.5 md:p-2 rounded-lg group-hover:bg-fuchsia-500/40 transition-colors">
+            <Box className="w-4 h-4 md:w-6 md:h-6 text-fuchsia-400 animate-spin" style={{ animationDuration: '3s' }} />
           </div>
           <div>
             <h1 
-              className="text-3xl font-bold tracking-widest"
+              className="text-xl md:text-3xl font-bold tracking-widest"
               style={{ 
                 fontFamily: '"Comic Sans MS", "Chalkboard SE", sans-serif',
                 color: '#00FF00',
@@ -804,9 +721,9 @@ export default function App() {
         </button>
         
         <div className="flex flex-col items-end gap-2 pointer-events-auto">
-          <label className="flex items-center justify-center gap-2 bg-fuchsia-600 hover:bg-fuchsia-500 border-2 border-cyan-400 transition-all px-5 py-2.5 rounded-none cursor-pointer font-bold shadow-[4px_4px_0px_#00FFFF] active:translate-y-1 active:translate-x-1 active:shadow-none uppercase tracking-wider text-yellow-300 w-48">
-            <Upload className="w-4 h-4" />
-            <span>Upload Model</span>
+          <label className="flex items-center justify-center gap-1.5 md:gap-2 bg-fuchsia-600 hover:bg-fuchsia-500 border-2 border-cyan-400 transition-all px-3 py-1.5 md:px-5 md:py-2.5 rounded-none cursor-pointer font-bold shadow-[4px_4px_0px_#00FFFF] active:translate-y-1 active:translate-x-1 active:shadow-none uppercase tracking-wider text-yellow-300 w-36 md:w-48 text-xs md:text-base">
+            <Upload className="w-3 h-3 md:w-4 md:h-4" />
+            <span>Upload World</span>
             <input 
               ref={fileInputRef}
               type="file" 
@@ -818,10 +735,10 @@ export default function App() {
         </div>
       </div>
 
-      <div className="absolute bottom-6 right-6 z-10 flex flex-col items-end gap-6 pointer-events-auto">
+      <div className="absolute bottom-6 right-6 z-10 flex flex-col items-end gap-6 pointer-events-none">
       {!hasUploadedModel && (
         showPresets ? (
-          <div className="absolute bottom-6 right-6 z-10 w-64 bg-black/80 backdrop-blur-md rounded-none border-2 border-dashed border-cyan-400 shadow-[0_0_15px_rgba(0,255,255,0.5)] overflow-hidden flex flex-col max-h-[calc(100vh-180px)] pointer-events-auto">
+          <div className="w-64 bg-black/80 backdrop-blur-md rounded-none border-2 border-dashed border-cyan-400 shadow-[0_0_15px_rgba(0,255,255,0.5)] overflow-hidden flex flex-col max-h-[calc(100vh-180px)] pointer-events-auto">
             <div className="bg-fuchsia-600/30 px-3 py-2 text-xs font-bold text-yellow-300 uppercase tracking-widest border-b-2 border-dashed border-cyan-400 text-center shrink-0 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Box className="w-3 h-3 text-cyan-400" />
@@ -838,23 +755,57 @@ export default function App() {
               {presetModels.length === 0 ? (
                 <div className="px-3 py-4 text-sm text-cyan-300/50 text-center shrink-0 animate-pulse">Scanning for models...</div>
               ) : (
-                presetModels.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => loadPresetModel(preset)}
-                    className="text-left px-3 py-2 text-xs font-mono text-cyan-300 hover:bg-fuchsia-600/50 hover:text-yellow-300 transition-colors border-b border-cyan-400/30 last:border-0 truncate shrink-0"
-                    title={preset.name}
-                  >
-                    {preset.name}
-                  </button>
-                ))
+                presetModels.map((preset, idx) => {
+                  const isWeb3D = preset.name.startsWith('Web3D:');
+                  const isLMU = preset.name.startsWith('LMU:');
+                  const isSigGraph = preset.name.startsWith('SIG-GRAPH:');
+                  const isNASA = preset.name.startsWith('NASA:');
+                  const displayName = preset.name.replace(/^(Web3D|LMU|SIG-GRAPH|NASA):\s*/, '');
+                  const originUrl = isWeb3D 
+                    ? 'https://www.web3d.org/x3d/content/Basic/Vrml97Specification/' 
+                    : isLMU 
+                      ? 'https://cs.lmu.edu/~ray/notes/vrmlexamples/' 
+                      : isSigGraph
+                        ? 'https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/'
+                        : isNASA
+                          ? 'https://lambda.gsfc.nasa.gov/product/cobe/vrml_models.html'
+                          : '#';
+                  const originName = isWeb3D ? 'Web3D' : isLMU ? 'LMU' : isSigGraph ? 'SIG-GRAPH' : isNASA ? 'NASA' : 'Origin';
+
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between px-3 py-2 border-b border-cyan-400/30 last:border-0 hover:bg-fuchsia-600/50 transition-colors group shrink-0 cursor-pointer"
+                      onClick={() => loadPresetModel(preset)}
+                    >
+                      <div
+                        className="text-left text-xs font-mono text-cyan-300 group-hover:text-yellow-300 truncate flex-1"
+                        title={displayName}
+                      >
+                        {displayName}
+                      </div>
+                      {(isWeb3D || isLMU || isSigGraph || isNASA) && (
+                        <a 
+                          href={originUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-[10px] text-fuchsia-400 hover:text-cyan-200 ml-2 uppercase font-bold tracking-wider px-1 py-0.5 rounded bg-black/50"
+                          onClick={(e) => e.stopPropagation()}
+                          title={`Go to ${originName} source`}
+                        >
+                          {originName}
+                        </a>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
         ) : (
           <button 
             onClick={() => setShowPresets(true)}
-            className="absolute bottom-6 right-6 z-10 bg-black/80 backdrop-blur-md p-3 rounded-none border-2 border-dashed border-cyan-400 text-cyan-400 hover:text-yellow-300 hover:border-yellow-300 transition-all shadow-[0_0_15px_rgba(0,255,255,0.5)] pointer-events-auto active:translate-y-1 active:translate-x-1 active:shadow-none"
+            className="bg-black/80 backdrop-blur-md p-3 rounded-none border-2 border-dashed border-cyan-400 text-cyan-400 hover:text-yellow-300 hover:border-yellow-300 transition-all shadow-[0_0_15px_rgba(0,255,255,0.5)] pointer-events-auto active:translate-y-1 active:translate-x-1 active:shadow-none"
             title="Show Presets"
           >
             <Box className="w-6 h-6" />
@@ -905,7 +856,7 @@ export default function App() {
                 textShadow: '1px 1px #FF00FF, -1px -1px #00FFFF'
               }}
             >
-              <Info className="w-5 h-5 text-fuchsia-400" /> The vintage model viewer!
+              <Info className="w-5 h-5 text-fuchsia-400" /> The vintage world viewer!
             </h3>
             <button 
               onClick={() => setShowInstructions(false)}
@@ -915,7 +866,7 @@ export default function App() {
             </button>
           </div>
           <ul className="space-y-2 list-disc list-inside text-cyan-300">
-            <li><span className="text-yellow-300 font-bold">Drag & drop</span> a 3D model file anywhere</li>
+            <li><span className="text-yellow-300 font-bold">Drag & drop</span> a 3D world/model file anywhere</li>
             <li><span className="text-yellow-300 font-bold">Supported:</span> .glb, .gltf, .obj, .stl, .wrl</li>
             <li><span className="text-yellow-300 font-bold">Left click + drag</span> to rotate</li>
             <li><span className="text-yellow-300 font-bold">Right click + drag</span> to pan</li>
