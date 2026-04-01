@@ -21,5 +21,17 @@ export default defineConfig(({mode}) => {
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
     },
+    build: {
+      chunkSizeWarningLimit: 1500,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            babylon: ['@babylonjs/core', '@babylonjs/gui', '@babylonjs/loaders'],
+            three: ['three'],
+            react: ['react', 'react-dom'],
+          },
+        },
+      },
+    },
   };
 });

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build:presets": "vite-node scripts/build-presets.ts",
+    "build:presets": "tsx scripts/build-presets.ts",
     "build": "npm run build:presets && vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
