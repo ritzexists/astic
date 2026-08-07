@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" fill="#0d0a1a"/>
+  <rect x="3" y="3" width="58" height="58" rx="11" fill="none" stroke="#FF00FF" stroke-width="2" stroke-dasharray="4 3"/>
+  <!-- Isometric 3D Box in neon colors -->
+  <g transform="translate(32, 32)">
+    <!-- Top Face -->
+    <polygon points="0,-18 16,-9 0,0 -16,-9" fill="#00FF00" fill-opacity="0.3" stroke="#00FF00" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- Left Face -->
+    <polygon points="-16,-9 0,0 0,18 -16,9" fill="#FF00FF" fill-opacity="0.25" stroke="#FF00FF" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- Right Face -->
+    <polygon points="0,0 16,-9 16,9 0,18" fill="#00FFFF" fill-opacity="0.25" stroke="#00FFFF" stroke-width="2.5" stroke-linejoin="round"/>
+  </g>
+</svg>
