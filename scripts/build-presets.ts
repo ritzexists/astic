@@ -14,41 +14,51 @@ async function buildPresets() {
 
   // 1. Fetch Web3D VRML97 Specification Models
   try {
-    const web3dUrl = 'https://www.web3d.org/x3d/content/Basic/Vrml97Specification/index.html';
-    const web3dRes = await fetch(web3dUrl);
-    if (web3dRes.ok) {
-      const web3dHtml = await web3dRes.text();
-      const links = new Set<string>();
-      
-      const regex1 = /href="([^"]+)Index\.html"/g;
-      let match1;
-      while ((match1 = regex1.exec(web3dHtml)) !== null) {
-        links.add(match1[1] + '.wrl');
+    const web3dBaseUrl = 'https://www.web3d.org/x3d/content/examples/basic/Vrml97Specification/';
+    const requestedWeb3D = [
+      'ChopperBody', 'ChopperRotor', 'Example02', 'Example03', 'Example04',
+      'Example05', 'Example06', 'Example07', 'Example08', 'Example09',
+      'Example10', 'Example11', 'Example12', 'Example13_2', 'Example13_3',
+      'Example14', 'Example15', 'Example16', 'Example17', 'Example18',
+      'Example19', 'RefractiveMaterial', 'Rotor'
+    ];
+
+    const links = new Set<string>(requestedWeb3D.map(m => `${m}.wrl`));
+
+    try {
+      const web3dRes = await fetch(web3dBaseUrl);
+      if (web3dRes.ok) {
+        const html = await web3dRes.text();
+        const regex = /href="([^"]+Index\.html)"/gi;
+        let m;
+        while ((m = regex.exec(html)) !== null) {
+          const baseName = m[1].replace(/Index\.html$/i, '');
+          if (baseName && !baseName.includes('/')) {
+            links.add(`${baseName}.wrl`);
+          }
+        }
       }
-      
-      const regex2 = /href="([^"]+\.wrl)"/g;
-      let match2;
-      while ((match2 = regex2.exec(web3dHtml)) !== null) {
-        links.add(match2[1]);
+    } catch (e) {
+      console.warn('Directory scan warning:', e);
+    }
+
+    for (const fileName of Array.from(links)) {
+      const fileUrl = `${web3dBaseUrl}${fileName}`;
+      try {
+        const fileRes = await fetch(fileUrl);
+        if (fileRes.ok) {
+          const text = await fileRes.text();
+          if (text.trim().startsWith('#VRML')) {
+            newPresets.push({
+              name: `Web3D: ${fileName}`,
+              url: fileUrl,
+              content: text
+            });
+          }
+        }
+      } catch (e) {
+        console.error(`Failed to fetch ${fileUrl}:`, e);
       }
-      
-      const excludedWeb3D = [
-        'Example04', 'Example05', 'Example07', 'Example14', 'Example15', 'Example16', 'Example19',
-        '6', '10', '11', '12', '13_3', 
-        'Example6', 'Example10', 'Example11', 'Example12', 'Example13_3',
-        'RefractiveMaterial', 'Rotor', 'exampleD_5'
-      ];
-      
-      Array.from(links).forEach(link => {
-        const fileName = link.split('/').pop() || link;
-        const nameOnly = fileName.replace('.wrl', '');
-        if (excludedWeb3D.includes(nameOnly)) return;
-        
-        newPresets.push({
-          name: `Web3D: ${fileName}`,
-          url: `https://www.web3d.org/x3d/content/Basic/Vrml97Specification/${link}`
-        });
-      });
     }
   } catch (err) {
     console.error('Failed to fetch Web3D presets:', err);
@@ -99,56 +109,119 @@ async function buildPresets() {
 
   const vrmlLoader = new VRMLLoader();
 
-  // 3. Fetch SIG-GRAPH VRML Examples
+  // 3. Fetch SIG-GRAPH VRML Examples from SourceForge / Web3D Siggraph98Course
   try {
-    const sigGraphUrl = 'https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/';
-    const sigGraphRes = await fetch(sigGraphUrl);
-    if (sigGraphRes.ok) {
-      const sigGraphHtml = await sigGraphRes.text();
-      const regex = /href="([^"]+\.wrl)"/gi;
-      let match;
-      const sigGraphLinks = new Set<string>();
-      while ((match = regex.exec(sigGraphHtml)) !== null) {
-        sigGraphLinks.add(match[1]);
-      }
-      
-      let sigGraphLinksArray = Array.from(sigGraphLinks);
-      const torchesIndex = sigGraphLinksArray.findIndex(link => link.toLowerCase().includes('torches3'));
-      if (torchesIndex !== -1) {
-        sigGraphLinksArray = sigGraphLinksArray.slice(0, torchesIndex);
-      }
+    const sigGraphBaseUrlSF = 'https://sourceforge.net/p/x3d/code/HEAD/tree/www.web3d.org/x3d/content/examples/Vrml2Sourcebook/Siggraph98Course/originals/';
+    const web3dCourseUrl = 'https://www.web3d.org/x3d/content/examples/Vrml2Sourcebook/Siggraph98Course/';
 
-      // Test links in chunks
-      const chunkSize = 5;
-      for (let i = 0; i < sigGraphLinksArray.length; i += chunkSize) {
-        const chunk = sigGraphLinksArray.slice(i, i + chunkSize);
-        const sigGraphPromises = chunk.map(async (link) => {
+    const modelMap = new Map<string, { sfUrl: string, web3dUrl: string }>();
+
+    // Try fetching catalog from Web3D first (100% reliable, no 429s)
+    try {
+      const courseRes = await fetch(web3dCourseUrl);
+      if (courseRes.ok) {
+        const html = await courseRes.text();
+        const regex = /href="([^"/]+)Index\.html"/gi;
+        let m;
+        while ((m = regex.exec(html)) !== null) {
+          const name = m[1];
+          const lowerName = name.toLowerCase() + '.wrl';
+          modelMap.set(lowerName, {
+            sfUrl: `${sigGraphBaseUrlSF}${lowerName}?format=raw`,
+            web3dUrl: `${web3dCourseUrl}${name}.wrl`
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Web3D course index scan failed:', e);
+    }
+
+    // Try fetching catalog from SourceForge as backup/supplement
+    try {
+      const sfRes = await fetch(sigGraphBaseUrlSF);
+      if (sfRes.ok) {
+        const html = await sfRes.text();
+        const regex = /href="([^"]+\.wrl)"/gi;
+        let m;
+        while ((m = regex.exec(html)) !== null) {
+          const fileName = m[1];
+          const lowerName = fileName.toLowerCase();
+          if (!modelMap.has(lowerName)) {
+            const baseName = fileName.replace(/\.wrl$/i, '');
+            modelMap.set(lowerName, {
+              sfUrl: `${sigGraphBaseUrlSF}${fileName}?format=raw`,
+              web3dUrl: `${web3dCourseUrl}${baseName}.wrl`
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('SourceForge directory scan failed:', e);
+    }
+
+    const items = Array.from(modelMap.entries());
+    console.log(`Discovered ${items.length} SIG-GRAPH models.`);
+
+    const chunkSize = 15;
+    for (let i = 0; i < items.length; i += chunkSize) {
+      const chunk = items.slice(i, i + chunkSize);
+      const promises = chunk.map(async ([fileName, urls]) => {
+        try {
+          let text = '';
+          // Prefer web3dUrl for fetching content (fast, no rate limits)
           try {
-            const fileUrl = `https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/${link}`;
-            const fileRes = await fetch(fileUrl);
-            if (!fileRes.ok) return null;
-            const text = await fileRes.text();
-            
-            if (!text.trim().startsWith('#VRML V2.0 utf8')) return null;
-            
+            const res = await fetch(urls.web3dUrl);
+            if (res.ok) {
+              const fetchedText = await res.text();
+              if (fetchedText.trim().startsWith('#VRML')) {
+                text = fetchedText;
+              }
+            }
+          } catch (e) {}
+
+          // Fallback to SF raw url if web3d failed
+          if (!text) {
+            try {
+              const res = await fetch(urls.sfUrl);
+              if (res.ok) {
+                const fetchedText = await res.text();
+                if (fetchedText.trim().startsWith('#VRML')) {
+                  text = fetchedText;
+                }
+              }
+            } catch (e) {}
+          }
+
+          if (!text) return null;
+
+          // Validate parsing
+          try {
             const vrmlScene = vrmlLoader.parse(text, '');
             if (vrmlScene && vrmlScene.children.length > 0) {
               return {
-                name: `SIG-GRAPH: ${link}`,
-                url: fileUrl
+                name: `SIG-GRAPH: ${fileName}`,
+                url: urls.sfUrl,
+                content: text
               };
             }
           } catch (e) {
-            // Parsing failed
+            // Include valid #VRML content even if Three.js parser warns
+            return {
+              name: `SIG-GRAPH: ${fileName}`,
+              url: urls.sfUrl,
+              content: text
+            };
           }
-          return null;
-        });
+        } catch (e) {
+          console.error(`Error processing SIG-GRAPH model ${fileName}:`, e);
+        }
+        return null;
+      });
 
-        const sigGraphResults = await Promise.all(sigGraphPromises);
-        sigGraphResults.forEach(res => {
-          if (res) newPresets.push(res);
-        });
-      }
+      const results = await Promise.all(promises);
+      results.forEach(res => {
+        if (res) newPresets.push(res);
+      });
     }
   } catch (err) {
     console.error('Failed to fetch SIG-GRAPH presets:', err);

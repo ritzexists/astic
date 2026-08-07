@@ -1,12 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, PointLight, SceneLoader, MeshBuilder, Color4, WebXRSessionManager, WebXRState, StandardMaterial, Texture, Color3, Mesh } from '@babylonjs/core';
+import { Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, PointLight, SceneLoader, MeshBuilder, Color4, WebXRSessionManager, WebXRState, StandardMaterial, Texture, DynamicTexture, Color3, Mesh } from '@babylonjs/core';
 import '@babylonjs/loaders';
 import { AdvancedDynamicTexture, Button, TextBlock } from '@babylonjs/gui';
-import { Upload, Box, Info, Glasses } from 'lucide-react';
+import { Upload, Box, Info, Glasses, AlertTriangle } from 'lucide-react';
 import * as THREE from 'three';
 import { VRMLLoader } from 'three/examples/jsm/loaders/VRMLLoader.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import presetsData from './presets.json';
+
+import defaultGroundImg from './assets/images/default_ground_1786141329056.jpg';
+import defaultSkyImg from './assets/images/default_sky_1786141336915.jpg';
+import cyberpunkGroundImg from './assets/images/cyberpunk_ground_1786141344761.jpg';
+import cyberpunkSkyImg from './assets/images/cyberpunk_sky_1786141353818.jpg';
+import vaporwaveGroundImg from './assets/images/vaporwave_ground_1786141363695.jpg';
+import vaporwaveSkyImg from './assets/images/vaporwave_sky_1786141372851.jpg';
+import geocitiesGroundImg from './assets/images/geocities_ground_1786141381793.jpg';
+import geocitiesSkyImg from './assets/images/geocities_sky_1786141389577.jpg';
+import moonTextureImg from './assets/images/moon_texture_1786142106429.jpg';
+import buildingFacadeImg from './assets/images/building_facade_1786142117018.jpg';
+import vaporwaveSunImg from './assets/images/vaporwave_sun_1786142126336.jpg';
+import palmTreeImg from './assets/images/palm_tree_1786142135321.jpg';
+import cyberMountainsSkyImg from './assets/images/cyber_mountains_sky_1786143511958.jpg';
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -21,6 +35,7 @@ export default function App() {
   const [hasUploadedModel, setHasUploadedModel] = useState(false);
   const [isDefaultModel, setIsDefaultModel] = useState(true);
   const [presetModels, setPresetModels] = useState<{name: string, url?: string, content?: string}[]>([]);
+  const [failedPresetNames, setFailedPresetNames] = useState<Record<string, boolean>>({});
   const instructionsRef = useRef<HTMLDivElement>(null);
   const [theme, setTheme] = useState<'default' | 'cyberpunk' | 'vaporwave' | 'geocities' | 'void'>('void');
   const [groundPlacement, setGroundPlacement] = useState<'underneath' | 'middle'>('underneath');
@@ -60,12 +75,247 @@ export default function App() {
     }
   };
 
+  const createSkybox = (name: string, textureUrl: string, currentScene: Scene) => {
+    const sky = MeshBuilder.CreateSphere(name, { diameter: 500, segments: 32 }, currentScene);
+    const skyMat = new StandardMaterial(name + "Mat", currentScene);
+    skyMat.backFaceCulling = false;
+    skyMat.specularColor = new Color3(0, 0, 0);
+    skyMat.diffuseColor = new Color3(0, 0, 0);
+
+    const skyTex = new Texture(textureUrl, currentScene);
+    skyTex.uScale = 1;
+    skyTex.vScale = 1;
+    skyTex.coordinatesMode = Texture.FIXED_EQUIRECTANGULAR_MODE;
+
+    skyMat.emissiveTexture = skyTex;
+    skyMat.emissiveColor = new Color3(1, 1, 1);
+    sky.material = skyMat;
+    return sky;
+  };
+
+  const createCheckerboardSkybox = (name: string, currentScene: Scene) => {
+    const dynTex = new DynamicTexture(name + "Tex", { width: 1024, height: 1024 }, currentScene, false);
+    const ctx = dynTex.getContext() as any;
+    const tileSize = 64;
+    for (let y = 0; y < 1024; y += tileSize) {
+      for (let x = 0; x < 1024; x += tileSize) {
+        const isEven = ((x / tileSize) + (y / tileSize)) % 2 === 0;
+        ctx.fillStyle = isEven ? '#1e88e5' : '#e3f2fd';
+        ctx.fillRect(x, y, tileSize, tileSize);
+      }
+    }
+    dynTex.update();
+    dynTex.uScale = 16;
+    dynTex.vScale = 10;
+    dynTex.wrapU = Texture.WRAP_ADDRESSMODE;
+    dynTex.wrapV = Texture.WRAP_ADDRESSMODE;
+
+    const sky = MeshBuilder.CreateSphere(name, { diameter: 500, segments: 32 }, currentScene);
+    const skyMat = new StandardMaterial(name + "Mat", currentScene);
+    skyMat.backFaceCulling = false;
+    skyMat.disableLighting = true;
+    skyMat.emissiveTexture = dynTex;
+    skyMat.diffuseTexture = dynTex;
+    skyMat.diffuseColor = new Color3(0, 0, 0);
+    skyMat.emissiveColor = new Color3(1, 1, 1);
+    sky.material = skyMat;
+    return sky;
+  };
+
+  const createVaporwaveGroundTexture = (name: string, currentScene: Scene) => {
+    const dynTex = new DynamicTexture(name + "Tex", { width: 1024, height: 1024 }, currentScene, false);
+    const ctx = dynTex.getContext();
+    
+    ctx.fillStyle = '#0a021a';
+    ctx.fillRect(0, 0, 1024, 1024);
+    
+    const gridSize = 64;
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#ff007f';
+    
+    for (let x = 0; x <= 1024; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, 1024);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= 1024; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(1024, y);
+      ctx.stroke();
+    }
+    
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#00f0ff';
+    const subStep = 32;
+    for (let x = subStep; x < 1024; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, 1024);
+      ctx.stroke();
+    }
+    for (let y = subStep; y < 1024; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(1024, y);
+      ctx.stroke();
+    }
+
+    dynTex.update();
+    dynTex.uScale = 25;
+    dynTex.vScale = 25;
+    dynTex.wrapU = Texture.WRAP_ADDRESSMODE;
+    dynTex.wrapV = Texture.WRAP_ADDRESSMODE;
+
+    const gMat = new StandardMaterial("vwGroundMat", currentScene);
+    gMat.diffuseTexture = dynTex;
+    gMat.emissiveTexture = dynTex;
+    gMat.emissiveColor = new Color3(0.8, 0.8, 0.8);
+    gMat.specularColor = new Color3(0.05, 0.05, 0.05);
+    return gMat;
+  };
+
+  const createVaporwaveSunTexture = (currentScene: Scene) => {
+    const dynTex = new DynamicTexture("vwSunTex", { width: 512, height: 512 }, currentScene, true);
+    dynTex.hasAlpha = true;
+    const ctx = dynTex.getContext() as any;
+    ctx.clearRect(0, 0, 512, 512);
+
+    const gradient = ctx.createLinearGradient(0, 50, 0, 460);
+    gradient.addColorStop(0, '#ffee00');
+    gradient.addColorStop(0.55, '#ff007f');
+    gradient.addColorStop(1, '#9900ff');
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(256, 256, 200, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalCompositeOperation = 'destination-out';
+    for (let i = 0; i < 9; i++) {
+      const y = 260 + i * 22;
+      const height = 3 + i * 2;
+      ctx.fillRect(0, y, 512, height);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+
+    dynTex.update();
+    return dynTex;
+  };
+
+  const createVaporwavePalmTexture = (currentScene: Scene) => {
+    const dynTex = new DynamicTexture("vwPalmTex", { width: 256, height: 512 }, currentScene, true);
+    dynTex.hasAlpha = true;
+    const ctx = dynTex.getContext() as any;
+    ctx.clearRect(0, 0, 256, 512);
+
+    ctx.strokeStyle = '#00f0ff';
+    ctx.lineWidth = 14;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(128, 500);
+    ctx.quadraticCurveTo(145, 320, 128, 160);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#ff00aa';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(128, 500);
+    ctx.quadraticCurveTo(145, 320, 128, 160);
+    ctx.stroke();
+
+    const fronds = [-0.9, -0.5, -0.15, 0.15, 0.5, 0.9, -1.2, 1.2];
+    fronds.forEach(ang => {
+      ctx.save();
+      ctx.translate(128, 160);
+      ctx.rotate(ang);
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.quadraticCurveTo(70, -50, 110, 25);
+      ctx.quadraticCurveTo(50, 0, 0, 0);
+      ctx.fillStyle = '#ff007f';
+      ctx.fill();
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.restore();
+    });
+
+    dynTex.update();
+    return dynTex;
+  };
+
+  const createGeoCitiesTextBlock = (
+    text: string,
+    fontFamily: string,
+    bgColor: string,
+    textColor: string,
+    currentScene: Scene
+  ) => {
+    const width = 1024;
+    const height = 256;
+    const dynTex = new DynamicTexture("gcTextTex_" + Math.random(), { width, height }, currentScene, false);
+    const ctx = dynTex.getContext() as any;
+    
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, width, height);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, 12);
+    ctx.fillRect(0, 0, 12, height);
+    ctx.fillStyle = '#111111';
+    ctx.fillRect(0, height - 12, width, 12);
+    ctx.fillRect(width - 12, 0, 12, height);
+    
+    let fontSize = 48;
+    ctx.font = `bold ${fontSize}px "${fontFamily}", Impact, "Comic Sans MS", sans-serif`;
+    while (ctx.measureText(text).width > width - 80 && fontSize > 20) {
+      fontSize -= 2;
+      ctx.font = `bold ${fontSize}px "${fontFamily}", Impact, "Comic Sans MS", sans-serif`;
+    }
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    
+    ctx.fillStyle = '#000000';
+    ctx.fillText(text, width / 2 + 4, height / 2 + 4);
+    ctx.fillStyle = textColor;
+    ctx.fillText(text, width / 2, height / 2);
+    
+    dynTex.update();
+    
+    const plane = MeshBuilder.CreatePlane("gcTextPlane", { width: 14, height: 3.5 }, currentScene);
+    plane.billboardMode = Mesh.BILLBOARDMODE_ALL;
+    const mat = new StandardMaterial("gcTextMat_" + Math.random(), currentScene);
+    mat.disableLighting = true;
+    mat.diffuseTexture = dynTex;
+    mat.emissiveTexture = dynTex;
+    mat.diffuseColor = new Color3(0, 0, 0);
+    mat.emissiveColor = new Color3(1, 1, 1);
+    mat.backFaceCulling = false;
+    plane.material = mat;
+    return plane;
+  };
+
+  const applyGroundTexture = (groundMesh: Mesh, textureUrl: string, uScale = 20, vScale = 20, currentScene: Scene) => {
+    const gMat = new StandardMaterial("groundMat_" + Math.random(), currentScene);
+    const gTex = new Texture(textureUrl, currentScene);
+    gTex.uScale = uScale;
+    gTex.vScale = vScale;
+    gTex.wrapU = Texture.WRAP_ADDRESSMODE;
+    gTex.wrapV = Texture.WRAP_ADDRESSMODE;
+    gMat.diffuseTexture = gTex;
+    gMat.specularColor = new Color3(0.05, 0.05, 0.05);
+    groundMesh.material = gMat;
+  };
+
   const applyTheme = (currentTheme: string, currentScene: Scene) => {
     // Cleanup old theme elements
     themeElementsRef.current.forEach(el => el.dispose());
     themeElementsRef.current = [];
 
-    const ground = currentScene.getMeshByName("ground");
+    const ground = currentScene.getMeshByName("ground") as Mesh;
     if (!ground) return;
 
     const mainLight = currentScene.getLightByName("light");
@@ -84,40 +334,26 @@ export default function App() {
         if (mainLight) mainLight.intensity = 0;
         currentScene.clearColor = new Color4(0.01, 0.005, 0.02, 1);
         currentScene.fogMode = Scene.FOGMODE_EXP;
-        currentScene.fogDensity = 0.01;
+        currentScene.fogDensity = 0.008;
         currentScene.fogColor = new Color3(0.02, 0, 0.05);
         
-        const cpMat = new StandardMaterial("cpMat", currentScene);
-        const cpTex = new Texture("https://picsum.photos/seed/citystreet/512/512", currentScene);
-        cpTex.uScale = 20;
-        cpTex.vScale = 20;
-        cpMat.diffuseTexture = cpTex;
-        cpMat.specularColor = new Color3(0.1, 0.1, 0.1);
-        ground.material = cpMat;
+        applyGroundTexture(ground, cyberpunkGroundImg, 25, 25, currentScene);
 
-        // Night Sky Backdrop
-        const sky = MeshBuilder.CreateSphere("sky", { diameter: 500, segments: 32 }, currentScene);
-        const skyMat = new StandardMaterial("skyMat", currentScene);
-        skyMat.backFaceCulling = false;
-        skyMat.diffuseColor = new Color3(0, 0, 0);
-        skyMat.emissiveColor = new Color3(0.05, 0.02, 0.1);
-        const skyTex = new Texture("https://picsum.photos/seed/nightstars/512/512", currentScene);
-        skyTex.uScale = 5;
-        skyTex.vScale = 5;
-        skyMat.emissiveTexture = skyTex;
-        sky.material = skyMat;
+        // Wraparound mountain skybox
+        const sky = createSkybox("cpSky", cyberMountainsSkyImg, currentScene);
         themeElementsRef.current.push(sky);
 
-        // Large Full Moon
+        // Large Full Moon with realistic moon texture
         const moonPos = new Vector3(-80, 100, 150);
         const moon = MeshBuilder.CreateSphere("moon", { diameter: 40, segments: 32 }, currentScene);
         moon.position = moonPos;
-        moon.rotation.y = Math.PI; // Rotate to face the center
+        moon.rotation.y = Math.PI; // Rotate to face center
         const moonMat = new StandardMaterial("moonMat", currentScene);
-        moonMat.emissiveColor = new Color3(0.9, 0.9, 1);
-        const moonTex = new Texture("https://www.babylonjs-playground.com/textures/moon.jpg", currentScene);
+        const moonTex = new Texture(moonTextureImg, currentScene);
         moonMat.emissiveTexture = moonTex;
         moonMat.diffuseTexture = moonTex;
+        moonMat.emissiveColor = new Color3(0.9, 0.9, 1);
+        moonMat.specularColor = new Color3(0.2, 0.2, 0.2);
         moon.material = moonMat;
         themeElementsRef.current.push(moon);
 
@@ -134,10 +370,10 @@ export default function App() {
         pinkLight.intensity = 1.0;
         themeElementsRef.current.push(pinkLight);
 
-        // Distant Skyscrapers
-        for (let i = 0; i < 50; i++) {
+        // Distant Skyscrapers with real skyscraper building window textures
+        for (let i = 0; i < 25; i++) {
           const angle = Math.random() * Math.PI * 2;
-          const dist = 40 + Math.random() * 60;
+          const dist = 15 + Math.random() * 26;
           const w = 3 + Math.random() * 6;
           const h = 20 + Math.random() * 50;
           const d = 3 + Math.random() * 6;
@@ -145,13 +381,16 @@ export default function App() {
           const building = MeshBuilder.CreateBox("building", { width: w, height: h, depth: d }, currentScene);
           building.position = new Vector3(Math.cos(angle) * dist, h / 2 + (groundPlacement === 'underneath' ? modelMinY : 0) - 2, Math.sin(angle) * dist);
           
-          const bMat = new StandardMaterial("bMat", currentScene);
+          const bMat = new StandardMaterial("bMat_" + i, currentScene);
           bMat.diffuseColor = new Color3(0.02, 0.02, 0.05);
-          const bTex = new Texture("https://www.babylonjs-playground.com/textures/grid.jpg", currentScene);
-          bTex.uScale = 2;
-          bTex.vScale = h / 5;
+          const bTex = new Texture(buildingFacadeImg, currentScene);
+          bTex.uScale = 1;
+          bTex.vScale = Math.max(1, Math.floor(h / 6));
+          bTex.wrapU = Texture.WRAP_ADDRESSMODE;
+          bTex.wrapV = Texture.WRAP_ADDRESSMODE;
+          bMat.diffuseTexture = bTex;
           bMat.emissiveTexture = bTex;
-          bMat.emissiveColor = Math.random() > 0.5 ? new Color3(1, 0, 0.5) : new Color3(0, 0.5, 1);
+          bMat.emissiveColor = Math.random() > 0.5 ? new Color3(1, 0.2, 0.8) : new Color3(0.2, 0.8, 1);
           building.material = bMat;
           themeElementsRef.current.push(building);
         }
@@ -160,41 +399,35 @@ export default function App() {
 
       case 'vaporwave': {
         if (mainLight) mainLight.intensity = 0;
-        currentScene.clearColor = new Color4(1, 0.4, 0.6, 1); // Pinkish horizon
+        currentScene.clearColor = new Color4(0.2, 0.05, 0.2, 1);
         currentScene.fogMode = Scene.FOGMODE_EXP;
-        currentScene.fogDensity = 0.01;
-        currentScene.fogColor = new Color3(1, 0.4, 0.6);
+        currentScene.fogDensity = 0.008;
+        currentScene.fogColor = new Color3(0.3, 0.1, 0.3);
 
-        const vwMat = new StandardMaterial("vwMat", currentScene);
-        const grassTex = new Texture("https://picsum.photos/seed/green-grass/512/512", currentScene);
-        grassTex.uScale = 20;
-        grassTex.vScale = 20;
-        vwMat.diffuseTexture = grassTex;
-        vwMat.specularColor = new Color3(0, 0, 0);
-        ground.material = vwMat;
+        // Seamlessly aligned math grid ground
+        ground.material = createVaporwaveGroundTexture("vwGround", currentScene);
 
-        // Orange/Pink Gradient Sky (Orange at top, Pink at horizon)
-        const vwSky = MeshBuilder.CreateSphere("vwSky", { diameter: 500, segments: 32 }, currentScene);
-        const vwSkyMat = new StandardMaterial("vwSkyMat", currentScene);
-        vwSkyMat.backFaceCulling = false;
-        // We simulate the gradient using a texture and emissive color
-        const skyGradTex = new Texture("https://picsum.photos/seed/orange-pink-sky/512/512", currentScene);
-        vwSkyMat.emissiveTexture = skyGradTex;
-        vwSkyMat.emissiveColor = new Color3(1, 0.6, 0.8); 
-        vwSky.material = vwSkyMat;
-        themeElementsRef.current.push(vwSky);
+        // Vaporwave Skybox (fills entire sky without tiling)
+        const sky = createSkybox("vwSky", vaporwaveSkyImg, currentScene);
+        themeElementsRef.current.push(sky);
 
-        // Massive Red-Orange Half-Set Sun
-        const sunsetPos = new Vector3(0, groundPlacement === 'underneath' ? modelMinY : 0, 200);
+        // Retro Vaporwave Sun elevated by 10 degrees with 100% transparent vector background
+        const sunAngleRad = (10 * Math.PI) / 180;
+        const sunDist = 200;
+        const sunY = (groundPlacement === 'underneath' ? modelMinY : 0) + sunDist * Math.sin(sunAngleRad);
+        const sunZ = sunDist * Math.cos(sunAngleRad);
+        const sunsetPos = new Vector3(0, sunY, sunZ);
         const sunset = MeshBuilder.CreatePlane("sunset", { size: 120 }, currentScene);
-        sunset.position = sunsetPos; // Half-set at ground level
+        sunset.position = sunsetPos;
         sunset.billboardMode = Mesh.BILLBOARDMODE_ALL;
         const sunsetMat = new StandardMaterial("sunsetMat", currentScene);
-        sunsetMat.emissiveColor = new Color3(1, 0.2, 0); // Red-Orange
-        sunsetMat.diffuseColor = new Color3(1, 0.2, 0);
-        const sunsetTex = new Texture("https://picsum.photos/seed/red-orange-sun/512/512", currentScene);
-        sunsetMat.emissiveTexture = sunsetTex;
-        sunsetMat.opacityTexture = sunsetTex;
+        const sunTex = createVaporwaveSunTexture(currentScene);
+        sunsetMat.diffuseTexture = sunTex;
+        sunsetMat.emissiveTexture = sunTex;
+        sunsetMat.opacityTexture = sunTex;
+        sunsetMat.emissiveColor = new Color3(1, 1, 1);
+        sunsetMat.disableLighting = true;
+        sunsetMat.backFaceCulling = false;
         sunset.material = sunsetMat;
         themeElementsRef.current.push(sunset);
 
@@ -211,17 +444,21 @@ export default function App() {
         ambientVw.intensity = 0.5;
         themeElementsRef.current.push(ambientVw);
 
-        // Distant Palm Trees
-        for (let i = 0; i < 30; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const dist = 35 + Math.random() * 40;
-          const palm = MeshBuilder.CreatePlane("palm", { size: 12 }, currentScene);
-          palm.position = new Vector3(Math.cos(angle) * dist, 6 + (groundPlacement === 'underneath' ? modelMinY : 0) - 1, Math.sin(angle) * dist);
+        // Distant Palm Trees with 100% transparent vector background (placed strictly on floor texture)
+        const palmTex = createVaporwavePalmTexture(currentScene);
+        for (let i = 0; i < 24; i++) {
+          const angle = (i / 24) * Math.PI * 2;
+          const dist = 16 + (i % 3) * 9;
+          const palm = MeshBuilder.CreatePlane("palm", { width: 14, height: 28 }, currentScene);
+          palm.position = new Vector3(Math.cos(angle) * dist, 13 + (groundPlacement === 'underneath' ? modelMinY : 0), Math.sin(angle) * dist);
           palm.billboardMode = Mesh.BILLBOARDMODE_ALL;
-          const pMat = new StandardMaterial("pMat", currentScene);
-          const pTex = new Texture("https://picsum.photos/seed/palm-tree-silhouette/200/400", currentScene);
-          pMat.diffuseTexture = pTex;
-          pTex.hasAlpha = true;
+          const pMat = new StandardMaterial("pMat_" + i, currentScene);
+          pMat.diffuseTexture = palmTex;
+          pMat.emissiveTexture = palmTex;
+          pMat.opacityTexture = palmTex;
+          pMat.emissiveColor = new Color3(1, 1, 1);
+          pMat.disableLighting = true;
+          pMat.backFaceCulling = false;
           palm.material = pMat;
           themeElementsRef.current.push(palm);
         }
@@ -230,39 +467,54 @@ export default function App() {
 
       case 'geocities': {
         if (mainLight) mainLight.intensity = 0;
-        currentScene.clearColor = new Color4(0, 0, 0.1, 1);
+        currentScene.clearColor = new Color4(0, 0, 0.08, 1);
         currentScene.fogMode = Scene.FOGMODE_NONE;
         
-        // Ground Texture
-        const gcMat = new StandardMaterial("gcMat", currentScene);
-        const gcTex = new Texture("https://picsum.photos/seed/90s-tiled-bg/256/256", currentScene);
-        gcTex.uScale = 40;
-        gcTex.vScale = 40;
-        gcMat.diffuseTexture = gcTex;
-        ground.material = gcMat;
+        applyGroundTexture(ground, geocitiesGroundImg, 30, 30, currentScene);
 
-        // Sky Texture
-        const gcSky = MeshBuilder.CreateSphere("gcSky", { diameter: 500, segments: 32 }, currentScene);
-        const gcSkyMat = new StandardMaterial("gcSkyMat", currentScene);
-        gcSkyMat.backFaceCulling = false;
-        const skyTex = new Texture("https://picsum.photos/seed/vintage-space/512/512", currentScene);
-        skyTex.uScale = 10;
-        skyTex.vScale = 10;
-        gcSkyMat.emissiveTexture = skyTex;
-        gcSkyMat.diffuseColor = new Color3(0, 0, 0);
-        gcSky.material = gcSkyMat;
-        themeElementsRef.current.push(gcSky);
+        // Retro Space Skybox (fills entire sky without tiling)
+        const sky = createSkybox("gcSky", geocitiesSkyImg, currentScene);
+        themeElementsRef.current.push(sky);
 
         // Default Lighting for Theme (White)
         const gcLight = new HemisphericLight("gcLight", new Vector3(0, 1, 0), currentScene);
         gcLight.intensity = 0.8;
         themeElementsRef.current.push(gcLight);
 
-        // Floating "Under Construction" signs and random 90s stuff (further away)
-        const items = ["construction", "skull", "fire", "cool", "web", "new", "hot"];
-        for (let i = 0; i < 25; i++) {
+        // Floating retro GeoCities text blocks harvested from actual vintage 90s pages (placed strictly on floor texture)
+        const geocitiesQuotes = [
+          { text: "*** WELCOME TO MY HOMEPAGE ***", font: "Comic Sans MS", bg: "#FFFF00", fg: "#FF0000" },
+          { text: "UNDER CONSTRUCTION 🚧 PARDON OUR DUST 🚧", font: "Impact", bg: "#FF0000", fg: "#FFFF00" },
+          { text: "BEST VIEWED IN NETSCAPE NAVIGATOR 3.0", font: "Times New Roman", bg: "#0000FF", fg: "#FFFFFF" },
+          { text: "YOU ARE VISITOR NUMBER: #00049210", font: "Courier New", bg: "#000000", fg: "#00FF00" },
+          { text: "PLEASE SIGN MY GUESTBOOK! [SIGN] [VIEW]", font: "Comic Sans MS", bg: "#FF00FF", fg: "#FFFFFF" },
+          { text: "LAST UPDATED: MARCH 14, 1998", font: "Trebuchet MS", bg: "#00FFFF", fg: "#000000" },
+          { text: "HOTLIST & COOL LINKS 🔥", font: "Impact", bg: "#FF5500", fg: "#FFFF00" },
+          { text: "WELCOME TO THE CYBER ZONE 🌐", font: "Arial", bg: "#00FF00", fg: "#000000" },
+          { text: "EMAIL WEBMASTER@GEOCITIES.COM", font: "Courier New", bg: "#FFFF00", fg: "#0000FF" },
+          { text: "HTML 3.2 VALIDATED | POWERED BY GEOCITIES", font: "Times New Roman", bg: "#CCCCCC", fg: "#000000" },
+          { text: "DON'T FORGET TO TURN SOUND ON! 🔊", font: "Comic Sans MS", bg: "#FF00AA", fg: "#FFFF00" },
+          { text: "JOIN MY FREE MAILING LIST TODAY!", font: "Trebuchet MS", bg: "#00AAFF", fg: "#FFFFFF" }
+        ];
+
+        for (let i = 0; i < 20; i++) {
+          const q = geocitiesQuotes[i % geocitiesQuotes.length];
           const angle = Math.random() * Math.PI * 2;
-          const dist = 25 + Math.random() * 25;
+          const dist = 12 + Math.random() * 24;
+          const textBlock = createGeoCitiesTextBlock(q.text, q.font, q.bg, q.fg, currentScene);
+          textBlock.position = new Vector3(
+            Math.cos(angle) * dist,
+            2 + Math.random() * 10 + (groundPlacement === 'underneath' ? modelMinY : 0),
+            Math.sin(angle) * dist
+          );
+          themeElementsRef.current.push(textBlock);
+        }
+
+        // Floating 90s images (placed strictly on floor texture)
+        const items = ["construction", "skull", "fire", "cool", "web", "new", "hot"];
+        for (let i = 0; i < 15; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 12 + Math.random() * 28;
           const sign = MeshBuilder.CreatePlane("sign", { size: 3 + Math.random() * 2 }, currentScene);
           sign.position = new Vector3(
             Math.cos(angle) * dist, 
@@ -278,14 +530,18 @@ export default function App() {
         break;
       }
 
-      default:
-        if (mainLight) mainLight.intensity = 0.7;
-        currentScene.clearColor = new Color4(0.1, 0.1, 0.1, 1);
+      default: {
+        if (mainLight) mainLight.intensity = 0.8;
+        currentScene.clearColor = new Color4(0.05, 0.05, 0.08, 1);
         currentScene.fogMode = Scene.FOGMODE_NONE;
-        const defMat = new StandardMaterial("defMat", currentScene);
-        defMat.diffuseColor = new Color3(0.2, 0.2, 0.2);
-        ground.material = defMat;
+
+        applyGroundTexture(ground, defaultGroundImg, 20, 20, currentScene);
+
+        // Light blue checkerboard skybox
+        const sky = createCheckerboardSkybox("defSky", currentScene);
+        themeElementsRef.current.push(sky);
         break;
+      }
     }
   };
 
@@ -303,6 +559,50 @@ export default function App() {
 
   useEffect(() => {
     setPresetModels(presetsData);
+
+    let cancelled = false;
+    const testAllPresets = async () => {
+      const loader = new VRMLLoader();
+      for (let i = 0; i < presetsData.length; i++) {
+        if (cancelled) break;
+        const preset = presetsData[i];
+        try {
+          let text = preset.content || '';
+          if (!text && preset.url) {
+            try {
+              const res = await fetch(preset.url);
+              if (res.ok) text = await res.text();
+            } catch {
+              const proxyUrl = 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(preset.url);
+              const res = await fetch(proxyUrl);
+              if (res.ok) text = await res.text();
+            }
+          }
+
+          const trimmedText = text.trim();
+          if (!trimmedText.startsWith('#VRML')) {
+            setFailedPresetNames(prev => ({ ...prev, [preset.name]: true }));
+          } else {
+            const vrmlScene = loader.parse(text, '');
+            if (!vrmlScene || vrmlScene.children.length === 0) {
+              setFailedPresetNames(prev => ({ ...prev, [preset.name]: true }));
+            }
+          }
+        } catch (e) {
+          setFailedPresetNames(prev => ({ ...prev, [preset.name]: true }));
+        }
+
+        if (i % 5 === 0) {
+          await new Promise(r => setTimeout(r, 5));
+        }
+      }
+    };
+
+    testAllPresets();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -328,9 +628,7 @@ export default function App() {
     light.intensity = 0.7;
 
     const ground = MeshBuilder.CreateGround("ground", { width: 100, height: 100 }, newScene);
-    const defMat = new StandardMaterial("defMat", newScene);
-    defMat.diffuseColor = new Color3(0.2, 0.2, 0.2);
-    ground.material = defMat;
+    applyTheme(theme, newScene);
 
     // Default box
     const box = MeshBuilder.CreateBox("defaultBox", { size: 2 }, newScene);
@@ -641,18 +939,26 @@ export default function App() {
       if (preset.content) {
         text = preset.content;
       } else if (preset.url) {
-        // Use a CORS proxy to fetch the VRML file from web3d.org
-        const proxyUrl = 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(preset.url);
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error(`Failed to fetch preset: ${response.statusText}`);
-        text = await response.text();
+        try {
+          const res = await fetch(preset.url);
+          if (res.ok) {
+            text = await res.text();
+          } else {
+            throw new Error(`Direct fetch status ${res.status}`);
+          }
+        } catch {
+          const proxyUrl = 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(preset.url);
+          const response = await fetch(proxyUrl);
+          if (!response.ok) throw new Error(`Failed to fetch preset: ${response.statusText}`);
+          text = await response.text();
+        }
       } else {
         throw new Error("Invalid preset configuration");
       }
 
       const trimmedText = text.trim();
-      if (!trimmedText.startsWith('#VRML V2.0 utf8')) {
-        console.warn("File does not start with '#VRML V2.0 utf8'.");
+      if (!trimmedText.startsWith('#VRML')) {
+        console.warn("File does not start with '#VRML'.");
         if (trimmedText.startsWith('#VRML V1.0')) {
           throw new Error("This file appears to be VRML 1.0, which is not supported.");
         }
@@ -675,6 +981,7 @@ export default function App() {
         },
         (err) => {
           console.error("GLTF Export Error:", err);
+          setFailedPresetNames(prev => ({ ...prev, [preset.name]: true }));
           setError(`Failed to convert VRML to GLB: ${stringifyError(err)}`);
           setIsLoading(false);
         },
@@ -682,6 +989,7 @@ export default function App() {
       );
     } catch (err: any) {
       console.error("Preset Load Error:", err);
+      setFailedPresetNames(prev => ({ ...prev, [preset.name]: true }));
       setError(`Error loading preset: ${stringifyError(err)}`);
       setIsLoading(false);
     }
@@ -705,7 +1013,7 @@ export default function App() {
           <div className="bg-fuchsia-500/20 p-1.5 md:p-2 rounded-lg group-hover:bg-fuchsia-500/40 transition-colors">
             <Box className="w-4 h-4 md:w-6 md:h-6 text-fuchsia-400 animate-spin" style={{ animationDuration: '3s' }} />
           </div>
-          <div>
+          <div className="flex flex-col items-start leading-none">
             <h1 
               className="text-xl md:text-3xl font-bold tracking-widest"
               style={{ 
@@ -717,6 +1025,15 @@ export default function App() {
             >
               astic
             </h1>
+            <span 
+              className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-cyan-300 mt-0.5"
+              style={{
+                textShadow: '1px 1px #FF00FF',
+                fontFamily: 'monospace'
+              }}
+            >
+              Theme: {theme}
+            </span>
           </div>
         </button>
         
@@ -762,15 +1079,17 @@ export default function App() {
                   const isNASA = preset.name.startsWith('NASA:');
                   const displayName = preset.name.replace(/^(Web3D|LMU|SIG-GRAPH|NASA):\s*/, '');
                   const originUrl = isWeb3D 
-                    ? 'https://www.web3d.org/x3d/content/Basic/Vrml97Specification/' 
+                    ? 'https://www.web3d.org/x3d/content/examples/basic/index.html'
                     : isLMU 
                       ? 'https://cs.lmu.edu/~ray/notes/vrmlexamples/' 
                       : isSigGraph
-                        ? 'https://tecfa.unige.ch/guides/vrml/sig-graph-tutorial/examples/'
+                        ? 'https://sourceforge.net/p/x3d/code/HEAD/tree/www.web3d.org/x3d/content/examples/Vrml2Sourcebook/Siggraph98Course/originals/'
                         : isNASA
                           ? 'https://lambda.gsfc.nasa.gov/product/cobe/vrml_models.html'
                           : '#';
                   const originName = isWeb3D ? 'Web3D' : isLMU ? 'LMU' : isSigGraph ? 'SIG-GRAPH' : isNASA ? 'NASA' : 'Origin';
+
+                  const hasError = !!failedPresetNames[preset.name];
 
                   return (
                     <div
@@ -778,18 +1097,26 @@ export default function App() {
                       className="flex items-center justify-between px-3 py-2 border-b border-cyan-400/30 last:border-0 hover:bg-fuchsia-600/50 transition-colors group shrink-0 cursor-pointer"
                       onClick={() => loadPresetModel(preset)}
                     >
-                      <div
-                        className="text-left text-xs font-mono text-cyan-300 group-hover:text-yellow-300 truncate flex-1"
-                        title={displayName}
-                      >
-                        {displayName}
+                      <div className="flex items-center gap-1.5 truncate flex-1 min-w-0">
+                        {hasError && (
+                          <AlertTriangle 
+                            className="w-3.5 h-3.5 text-yellow-400 shrink-0 inline-block" 
+                            title="Error encountered while loading/parsing model preset" 
+                          />
+                        )}
+                        <div
+                          className={`text-left text-xs font-mono truncate flex-1 ${hasError ? 'text-yellow-200/90' : 'text-cyan-300'} group-hover:text-yellow-300`}
+                          title={displayName + (hasError ? ' (Failed to load/parse)' : '')}
+                        >
+                          {displayName}
+                        </div>
                       </div>
                       {(isWeb3D || isLMU || isSigGraph || isNASA) && (
                         <a 
                           href={originUrl} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className="text-[10px] text-fuchsia-400 hover:text-cyan-200 ml-2 uppercase font-bold tracking-wider px-1 py-0.5 rounded bg-black/50"
+                          className="text-[10px] text-fuchsia-400 hover:text-cyan-200 ml-2 uppercase font-bold tracking-wider px-1 py-0.5 rounded bg-black/50 shrink-0"
                           onClick={(e) => e.stopPropagation()}
                           title={`Go to ${originName} source`}
                         >
