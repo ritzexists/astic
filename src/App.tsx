@@ -37,6 +37,8 @@ export default function App() {
   const [presetModels, setPresetModels] = useState<{name: string, url?: string, content?: string}[]>([]);
   const [failedPresetNames, setFailedPresetNames] = useState<Record<string, boolean>>({});
   const instructionsRef = useRef<HTMLDivElement>(null);
+  const xrButtonContainerRef = useRef<HTMLDivElement>(null);
+  const xrOverlayRef = useRef<HTMLElement | null>(null);
   const [theme, setTheme] = useState<'default' | 'cyberpunk' | 'vaporwave' | 'geocities' | 'void'>('void');
   const [groundPlacement, setGroundPlacement] = useState<'underneath' | 'middle'>('underneath');
   const [modelMinY, setModelMinY] = useState(0);
@@ -54,6 +56,27 @@ export default function App() {
       ground.position.y = groundPlacement === 'underneath' ? modelMinY : 0;
     }
   }, [groundPlacement, modelMinY, scene]);
+
+  useEffect(() => {
+    if (xrSupported && xrOverlayRef.current && xrButtonContainerRef.current) {
+      const overlay = xrOverlayRef.current;
+      overlay.style.position = 'static';
+      overlay.style.bottom = 'auto';
+      overlay.style.right = 'auto';
+      overlay.style.left = 'auto';
+      overlay.style.top = 'auto';
+      overlay.style.zIndex = 'auto';
+      overlay.style.margin = '0';
+      overlay.style.padding = '0';
+      overlay.style.display = 'flex';
+      overlay.style.alignItems = 'center';
+      overlay.style.justifyContent = 'center';
+
+      if (!xrButtonContainerRef.current.contains(overlay)) {
+        xrButtonContainerRef.current.appendChild(overlay);
+      }
+    }
+  }, [xrSupported]);
 
   const handleLogoDown = () => {
     isLongPress.current = false;
@@ -642,6 +665,9 @@ export default function App() {
           const xr = await newScene.createDefaultXRExperienceAsync({
             floorMeshes: [ground]
           });
+          if (xr.enterExitUI && xr.enterExitUI.overlay) {
+            xrOverlayRef.current = xr.enterExitUI.overlay;
+          }
           setXrSupported(true);
 
           let xrUI: any = null;
@@ -1001,7 +1027,7 @@ export default function App() {
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
     >
-      <div className="absolute top-0 left-0 w-full p-4 md:p-6 z-10 flex justify-between items-start pointer-events-none">
+      <div className="absolute top-0 left-0 w-full p-4 md:p-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] z-10 flex justify-between items-start pointer-events-none">
         <button 
           onClick={cycleTheme}
           onPointerDown={handleLogoDown}
@@ -1052,127 +1078,88 @@ export default function App() {
         </div>
       </div>
 
-      <div className="absolute bottom-6 right-6 z-10 flex flex-col items-end gap-6 pointer-events-none">
-      {!hasUploadedModel && (
-        showPresets ? (
-          <div className="w-64 bg-black/80 backdrop-blur-md rounded-none border-2 border-dashed border-cyan-400 shadow-[0_0_15px_rgba(0,255,255,0.5)] overflow-hidden flex flex-col max-h-[calc(100vh-180px)] pointer-events-auto">
-            <div className="bg-fuchsia-600/30 px-3 py-2 text-xs font-bold text-yellow-300 uppercase tracking-widest border-b-2 border-dashed border-cyan-400 text-center shrink-0 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Box className="w-3 h-3 text-cyan-400" />
-                <span>VRML97 Presets</span>
-              </div>
-              <button 
-                onClick={() => setShowPresets(false)}
-                className="text-cyan-400 hover:text-yellow-300 transition-colors font-bold"
-              >
-                ✕
-              </button>
+      {/* Popups floating above bottom buttons bar */}
+      {!hasUploadedModel && showPresets && (
+        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] right-4 sm:right-8 md:right-12 z-30 w-64 bg-black/80 backdrop-blur-md rounded-none border-2 border-dashed border-cyan-400 shadow-[0_0_15px_rgba(0,255,255,0.5)] overflow-hidden flex flex-col max-h-[calc(100vh-180px)] pointer-events-auto">
+          <div className="bg-fuchsia-600/30 px-3 py-2 text-xs font-bold text-yellow-300 uppercase tracking-widest border-b-2 border-dashed border-cyan-400 text-center shrink-0 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Box className="w-3 h-3 text-cyan-400" />
+              <span>VRML97 Presets</span>
             </div>
-            <div className="flex flex-col overflow-y-auto flex-1">
-              {presetModels.length === 0 ? (
-                <div className="px-3 py-4 text-sm text-cyan-300/50 text-center shrink-0 animate-pulse">Scanning for models...</div>
-              ) : (
-                presetModels.map((preset, idx) => {
-                  const isWeb3D = preset.name.startsWith('Web3D:');
-                  const isLMU = preset.name.startsWith('LMU:');
-                  const isSigGraph = preset.name.startsWith('SIG-GRAPH:');
-                  const isNASA = preset.name.startsWith('NASA:');
-                  const displayName = preset.name.replace(/^(Web3D|LMU|SIG-GRAPH|NASA):\s*/, '');
-                  const originUrl = isWeb3D 
-                    ? 'https://www.web3d.org/x3d/content/examples/basic/index.html'
-                    : isLMU 
-                      ? 'https://cs.lmu.edu/~ray/notes/vrmlexamples/' 
-                      : isSigGraph
-                        ? 'https://sourceforge.net/p/x3d/code/HEAD/tree/www.web3d.org/x3d/content/examples/Vrml2Sourcebook/Siggraph98Course/originals/'
-                        : isNASA
-                          ? 'https://lambda.gsfc.nasa.gov/product/cobe/vrml_models.html'
-                          : '#';
-                  const originName = isWeb3D ? 'Web3D' : isLMU ? 'LMU' : isSigGraph ? 'SIG-GRAPH' : isNASA ? 'NASA' : 'Origin';
-
-                  const hasError = !!failedPresetNames[preset.name];
-
-                  return (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between px-3 py-2 border-b border-cyan-400/30 last:border-0 hover:bg-fuchsia-600/50 transition-colors group shrink-0 cursor-pointer"
-                      onClick={() => loadPresetModel(preset)}
-                    >
-                      <div className="flex items-center gap-1.5 truncate flex-1 min-w-0">
-                        {hasError && (
-                          <AlertTriangle 
-                            className="w-3.5 h-3.5 text-yellow-400 shrink-0 inline-block" 
-                            title="Error encountered while loading/parsing model preset" 
-                          />
-                        )}
-                        <div
-                          className={`text-left text-xs font-mono truncate flex-1 ${hasError ? 'text-yellow-200/90' : 'text-cyan-300'} group-hover:text-yellow-300`}
-                          title={displayName + (hasError ? ' (Failed to load/parse)' : '')}
-                        >
-                          {displayName}
-                        </div>
-                      </div>
-                      {(isWeb3D || isLMU || isSigGraph || isNASA) && (
-                        <a 
-                          href={originUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="text-[10px] text-fuchsia-400 hover:text-cyan-200 ml-2 uppercase font-bold tracking-wider px-1 py-0.5 rounded bg-black/50 shrink-0"
-                          onClick={(e) => e.stopPropagation()}
-                          title={`Go to ${originName} source`}
-                        >
-                          {originName}
-                        </a>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        ) : (
-          <button 
-            onClick={() => setShowPresets(true)}
-            className="bg-black/80 backdrop-blur-md p-3 rounded-none border-2 border-dashed border-cyan-400 text-cyan-400 hover:text-yellow-300 hover:border-yellow-300 transition-all shadow-[0_0_15px_rgba(0,255,255,0.5)] pointer-events-auto active:translate-y-1 active:translate-x-1 active:shadow-none"
-            title="Show Presets"
-          >
-            <Box className="w-6 h-6" />
-          </button>
-        )
-      )}
-      </div>
-
-      {isLoading && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4 bg-black p-8 rounded-none border-2 border-dashed border-fuchsia-500 shadow-[0_0_15px_rgba(255,0,255,0.5)]">
-            <div className="w-12 h-12 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
-            <p 
-              className="font-bold text-xl tracking-widest uppercase"
-              style={{ 
-                fontFamily: '"Comic Sans MS", "Chalkboard SE", sans-serif',
-                color: '#00FF00',
-                textShadow: '1px 1px #FF00FF, -1px -1px #00FFFF'
-              }}
+            <button 
+              onClick={() => setShowPresets(false)}
+              className="text-cyan-400 hover:text-yellow-300 transition-colors font-bold"
             >
-              Loading model...
-            </p>
+              ✕
+            </button>
           </div>
-        </div>
-      )}
+          <div className="flex flex-col overflow-y-auto flex-1">
+            {presetModels.length === 0 ? (
+              <div className="px-3 py-4 text-sm text-cyan-300/50 text-center shrink-0 animate-pulse">Scanning for models...</div>
+            ) : (
+              presetModels.map((preset, idx) => {
+                const isWeb3D = preset.name.startsWith('Web3D:');
+                const isLMU = preset.name.startsWith('LMU:');
+                const isSigGraph = preset.name.startsWith('SIG-GRAPH:');
+                const isNASA = preset.name.startsWith('NASA:');
+                const displayName = preset.name.replace(/^(Web3D|LMU|SIG-GRAPH|NASA):\s*/, '');
+                const originUrl = isWeb3D 
+                  ? 'https://www.web3d.org/x3d/content/examples/basic/index.html'
+                  : isLMU 
+                    ? 'https://cs.lmu.edu/~ray/notes/vrmlexamples/' 
+                    : isSigGraph
+                      ? 'https://sourceforge.net/p/x3d/code/HEAD/tree/www.web3d.org/x3d/content/examples/Vrml2Sourcebook/Siggraph98Course/originals/'
+                      : isNASA
+                        ? 'https://lambda.gsfc.nasa.gov/product/cobe/vrml_models.html'
+                        : '#';
+                const originName = isWeb3D ? 'Web3D' : isLMU ? 'LMU' : isSigGraph ? 'SIG-GRAPH' : isNASA ? 'NASA' : 'Origin';
 
-      {error && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 bg-red-900/90 text-yellow-300 px-6 py-4 rounded-none border-2 border-dashed border-red-500 shadow-[0_0_15px_rgba(255,0,0,0.8)] backdrop-blur-md max-w-xl w-full">
-          <Info className="w-6 h-6 shrink-0" />
-          <p className="font-bold text-sm flex-1 tracking-wider">{error}</p>
-          <button onClick={() => setError(null)} className="shrink-0 hover:bg-red-500/50 p-1.5 rounded-none transition-colors border border-transparent hover:border-yellow-300">
-            ✕
-          </button>
+                const hasError = !!failedPresetNames[preset.name];
+
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between px-3 py-2 border-b border-cyan-400/30 last:border-0 hover:bg-fuchsia-600/50 transition-colors group shrink-0 cursor-pointer"
+                    onClick={() => loadPresetModel(preset)}
+                  >
+                    <div className="flex items-center gap-1.5 truncate flex-1 min-w-0">
+                      {hasError && (
+                        <AlertTriangle 
+                          className="w-3.5 h-3.5 text-yellow-400 shrink-0 inline-block" 
+                          title="Error encountered while loading/parsing model preset" 
+                        />
+                      )}
+                      <div
+                        className={`text-left text-xs font-mono truncate flex-1 ${hasError ? 'text-yellow-200/90' : 'text-cyan-300'} group-hover:text-yellow-300`}
+                        title={displayName + (hasError ? ' (Failed to load/parse)' : '')}
+                      >
+                        {displayName}
+                      </div>
+                    </div>
+                    {(isWeb3D || isLMU || isSigGraph || isNASA) && (
+                      <a 
+                        href={originUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-[10px] text-fuchsia-400 hover:text-cyan-200 ml-2 uppercase font-bold tracking-wider px-1 py-0.5 rounded bg-black/50 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                        title={`Go to ${originName} source`}
+                      >
+                        {originName}
+                      </a>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
 
       {showInstructions && (
         <div 
           ref={instructionsRef}
-          className="absolute bottom-6 left-6 z-10 bg-black/80 backdrop-blur-md p-5 rounded-none border-2 border-dashed border-green-500 text-sm text-cyan-300 max-w-sm pointer-events-auto shadow-[0_0_15px_rgba(0,255,0,0.5)]"
+          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] left-4 sm:left-8 md:left-12 z-30 bg-black/80 backdrop-blur-md p-4 sm:p-5 rounded-none border-2 border-dashed border-green-500 text-sm text-cyan-300 max-w-[calc(100vw-2rem)] sm:max-w-sm max-h-[calc(100vh-180px)] overflow-y-auto pointer-events-auto shadow-[0_0_15px_rgba(0,255,0,0.5)]"
         >
           <div className="flex justify-between items-start mb-3">
             <h3 
@@ -1208,7 +1195,7 @@ export default function App() {
               </span>
             </div>
             <p className="text-xs text-cyan-400/80 leading-relaxed">
-              Click the VR icon (bottom right) to enter immersive mode if you have a compatible headset.
+              Click the VR icon to enter immersive mode if you have a compatible headset.
             </p>
             <p className="mt-3 text-xs text-fuchsia-300 leading-relaxed bg-fuchsia-900/30 p-2 border border-dashed border-fuchsia-500/50">
               Note: VRML (.wrl) files are automatically converted to GLB using Three.js before being displayed in Babylon.js.
@@ -1217,14 +1204,65 @@ export default function App() {
         </div>
       )}
 
-      {!showInstructions && (
+      {/* Unified Level & Evenly Spaced Bottom Buttons Bar */}
+      <div className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-30 flex items-center justify-center gap-5 sm:gap-6 pointer-events-none">
+        {/* Info / Instructions Button */}
         <button 
-          onClick={() => setShowInstructions(true)}
-          className="absolute bottom-6 left-6 z-10 bg-black/80 backdrop-blur-md p-3 rounded-none border-2 border-dashed border-green-500 text-green-400 hover:text-yellow-300 hover:border-yellow-300 transition-all shadow-[0_0_15px_rgba(0,255,0,0.5)] pointer-events-auto active:translate-y-1 active:translate-x-1 active:shadow-none"
-          title="Show Instructions"
+          onClick={() => setShowInstructions(prev => !prev)}
+          className={`w-12 h-12 flex items-center justify-center bg-black/80 backdrop-blur-md rounded-none border-2 border-dashed ${showInstructions ? 'border-yellow-300 text-yellow-300 shadow-[0_0_15px_rgba(253,224,71,0.5)]' : 'border-green-500 text-green-400 shadow-[0_0_15px_rgba(0,255,0,0.5)]'} hover:text-yellow-300 hover:border-yellow-300 transition-all pointer-events-auto active:translate-y-0.5 shrink-0`}
+          title={showInstructions ? "Hide Instructions" : "Show Instructions"}
         >
           <Info className="w-6 h-6" />
         </button>
+
+        {/* Presets Button */}
+        {!hasUploadedModel && (
+          <button 
+            onClick={() => setShowPresets(prev => !prev)}
+            className={`w-12 h-12 flex items-center justify-center bg-black/80 backdrop-blur-md rounded-none border-2 border-dashed ${showPresets ? 'border-yellow-300 text-yellow-300 shadow-[0_0_15px_rgba(253,224,71,0.5)]' : 'border-cyan-400 text-cyan-400 shadow-[0_0_15px_rgba(0,255,255,0.5)]'} hover:text-yellow-300 hover:border-yellow-300 transition-all pointer-events-auto active:translate-y-0.5 shrink-0`}
+            title={showPresets ? "Hide Presets" : "Show Presets"}
+          >
+            <Box className="w-6 h-6" />
+          </button>
+        )}
+
+        {/* WebXR VR Button Container Slot */}
+        {xrSupported && (
+          <div 
+            ref={xrButtonContainerRef} 
+            id="xr-button-slot" 
+            className="w-12 h-12 flex items-center justify-center pointer-events-auto shrink-0"
+            title="Enter WebXR / VR"
+          />
+        )}
+      </div>
+
+      {isLoading && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 bg-black p-8 rounded-none border-2 border-dashed border-fuchsia-500 shadow-[0_0_15px_rgba(255,0,255,0.5)]">
+            <div className="w-12 h-12 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+            <p 
+              className="font-bold text-xl tracking-widest uppercase"
+              style={{ 
+                fontFamily: '"Comic Sans MS", "Chalkboard SE", sans-serif',
+                color: '#00FF00',
+                textShadow: '1px 1px #FF00FF, -1px -1px #00FFFF'
+              }}
+            >
+              Loading model...
+            </p>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-red-900/90 text-yellow-300 px-4 py-3 md:px-6 md:py-4 rounded-none border-2 border-dashed border-red-500 shadow-[0_0_15px_rgba(255,0,0,0.8)] backdrop-blur-md max-w-[calc(100vw-3rem)] md:max-w-xl w-[calc(100%-3rem)] md:w-full">
+          <Info className="w-6 h-6 shrink-0" />
+          <p className="font-bold text-sm flex-1 tracking-wider">{error}</p>
+          <button onClick={() => setError(null)} className="shrink-0 hover:bg-red-500/50 p-1.5 rounded-none transition-colors border border-transparent hover:border-yellow-300">
+            ✕
+          </button>
+        </div>
       )}
 
       <canvas 
